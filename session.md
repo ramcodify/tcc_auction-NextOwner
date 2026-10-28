@@ -1417,11 +1417,7 @@ Implemented **Live Search Autocomplete with Related Items Preview**:
 
 ## Turn 10: User
 
-Some students do not want to search for items one by one. They just want to tell the chatbot what they need.
-
-For example, a student can type, "Find me a cycle under ₹2,000." The chatbot should automatically search the available auctions and show cycles within that budget.
-
-If the student wants to bid on a cycle, the chatbot can suggest a bid and ask for permission before placing it. It must never bid more than the student's budget or place a bid without their approval. It must also keep every student's personal and account details private.
+some students do not want to search for items one by one. They just want to tell the chatbot what they need.For example, a student can type find me a cycle under 2,000 the chatbot should automatically search the available auctions and show cycles within that budget.If the student wants to bid on a cycle, the chatbot can suggest a bid and ask for permission before placing it. it must never bid more than the student's budget or place a bid without their approval. it must also keep every student's personal and account details private.
 
 ---
 

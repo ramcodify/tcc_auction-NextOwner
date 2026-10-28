@@ -29,10 +29,32 @@ const httpServer = http.createServer(app);
 const PORT = process.env.PORT || 5000;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  if (
+    origin === 'http://localhost:5173' ||
+    origin === 'http://127.0.0.1:5173' ||
+    origin === 'http://localhost:5000' ||
+    origin === 'http://127.0.0.1:5000' ||
+    origin === CLIENT_URL ||
+    origin.startsWith('http://localhost:') ||
+    origin.startsWith('http://127.0.0.1:')
+  ) {
+    return true;
+  }
+  return false;
+};
+
 // Setup Socket.IO
 const io = new Server(httpServer, {
   cors: {
-    origin: CLIENT_URL,
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Socket CORS blocked'));
+      }
+    },
     credentials: true
   }
 });
@@ -40,7 +62,13 @@ initSocket(io);
 
 // Middleware
 app.use(cors({
-  origin: CLIENT_URL,
+  origin: (origin, callback) => {
+    if (isAllowedOrigin(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS blocked'));
+    }
+  },
   credentials: true
 }));
 app.use(express.json());
