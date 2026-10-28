@@ -222,6 +222,20 @@ export const Navbar = () => {
               <Bell className="w-4 h-4 text-forest" /> Notifications
             </NavLink>
             <NavLink
+              to="/watchlist"
+              onClick={() => setMobileDrawerOpen(false)}
+              className="flex items-center gap-3 px-3 py-2 rounded text-sm text-ink hover:bg-stone font-medium"
+            >
+              <Bookmark className="w-4 h-4 text-forest" /> Watchlist & Saved Alerts
+            </NavLink>
+            <NavLink
+              to="/seller/dashboard"
+              onClick={() => setMobileDrawerOpen(false)}
+              className="flex items-center gap-3 px-3 py-2 rounded text-sm text-ink hover:bg-stone font-medium"
+            >
+              <Gavel className="w-4 h-4 text-forest" /> Seller Dashboard
+            </NavLink>
+            <NavLink
               to="/foundation"
               onClick={() => setMobileDrawerOpen(false)}
               className="flex items-center gap-3 px-3 py-2 rounded text-sm text-ink hover:bg-stone font-medium"

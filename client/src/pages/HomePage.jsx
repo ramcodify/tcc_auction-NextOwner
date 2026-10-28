@@ -1,228 +1,272 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowRight, Layers, ShieldCheck, Database, Smartphone, Laptop, Sparkles, ExternalLink } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  Search,
+  PlusCircle,
+  Clock,
+  Sparkles,
+  ArrowRight,
+  Bike,
+  Calculator,
+  BookOpen,
+  Laptop,
+  Armchair,
+  Layers,
+  ShieldCheck,
+  AlertCircle
+} from 'lucide-react';
 import PageContainer from '../components/common/PageContainer.jsx';
 import Button from '../components/common/Button.jsx';
-import Card, { CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../components/common/Card.jsx';
+import Input from '../components/common/Input.jsx';
 import Badge from '../components/common/Badge.jsx';
-import Dialog from '../components/common/Dialog.jsx';
+import Card from '../components/common/Card.jsx';
+import { LoadingState } from '../components/common/LoadingState.jsx';
+import AuctionCard from '../components/auction/AuctionCard.jsx';
 
 export const HomePage = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [data, setData] = useState({
+    liveAuctions: [],
+    closingSoon: [],
+    recentlyPublished: [],
+    categoriesCount: {}
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
 
-  const colorPalette = [
-    { name: 'Warm Paper', hex: '#F7F5F0', role: 'Page background & base contrast', bgClass: 'bg-[#F7F5F0] border-border' },
-    { name: 'Forest Green', hex: '#315B43', role: 'Primary buttons, active indicators', bgClass: 'bg-[#315B43] text-paper' },
-    { name: 'Ink', hex: '#20231F', role: 'Headings, primary body typography', bgClass: 'bg-[#20231F] text-paper' },
-    { name: 'Stone', hex: '#E8E5DB', role: 'Surface cards, panels, badges', bgClass: 'bg-[#E8E5DB] text-ink border-border' },
-    { name: 'Muted Olive', hex: '#77776D', role: 'Secondary copy, borders, subtle captions', bgClass: 'bg-[#77776D] text-paper' },
-  ];
+  const fetchHomeData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/auctions/home');
+      if (!res.ok) throw new Error('Failed to fetch marketplace data');
+      const json = await res.json();
+      setData(json);
+    } catch (err) {
+      setError(err.message || 'Error connecting to auction database.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const breakpoints = [
-    { label: 'Mobile (360px)', icon: Smartphone, desc: 'Single-column fluid flow, hamburger navigation, compact button targets.' },
-    { label: 'Tablet (768px)', icon: Smartphone, desc: 'Dual-column adaptive grids, inline search, touch-friendly padding.' },
-    { label: 'Laptop (1024px)', icon: Laptop, desc: 'Multi-column dashboard, full navigation bar, expanded cards.' },
-    { label: 'Desktop (1440px)', icon: Laptop, desc: 'Constrained max-w-7xl centered container, generous reading gutters.' },
+  useEffect(() => {
+    fetchHomeData();
+  }, []);
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/explore?q=${encodeURIComponent(searchQuery.trim())}`);
+    } else {
+      navigate('/explore');
+    }
+  };
+
+  const categories = [
+    { id: 'cycle', label: 'Bicycles & Cycles', icon: Bike },
+    { id: 'calculator', label: 'Calculators', icon: Calculator },
+    { id: 'books', label: 'Textbooks & Notes', icon: BookOpen },
+    { id: 'electronics', label: 'Electronics & Gear', icon: Laptop },
+    { id: 'furniture', label: 'Dorm Furniture', icon: Armchair },
+    { id: 'other', label: 'All Categories', icon: Layers }
   ];
 
   return (
     <PageContainer>
-      {/* Hero Section */}
-      <div className="py-8 md:py-14 border-b border-border">
+      {/* Marketplace Search & Hero Banner */}
+      <section className="py-6 sm:py-10 border-b border-border">
         <div className="max-w-3xl">
-          <div className="inline-flex items-center gap-2 mb-4">
-            <Badge variant="forest" size="sm">Phase 1 Complete</Badge>
-            <span className="text-xs text-olive">NEXTowner Foundation</span>
+          <div className="inline-flex items-center gap-2 mb-3">
+            <Badge variant="forest" size="sm">Campus Verified Marketplace</Badge>
+            <span className="text-xs text-olive">Zero Middlemen • Safe Student Pickup</span>
           </div>
 
           <h1 className="editorial-heading text-3xl sm:text-4xl md:text-5xl text-ink leading-[1.15] mb-4">
-            A restrained campus auction platform designed for circular student living.
+            Buy, bid, and sell pre-owned gear across your campus.
           </h1>
 
-          <p className="text-sm sm:text-base text-olive leading-relaxed max-w-2xl mb-8">
-            Built from scratch with React, Vite, Node.js, Express, and MongoDB. Structured for real-time Socket.IO bidding, student-to-student trust, and purposeful material reuse.
+          <p className="text-xs sm:text-sm text-olive leading-relaxed max-w-xl mb-6">
+            Time-bound student auctions with transparent bidding, automatic proxy bids, last-minute extensions, and coordinated campus handovers.
           </p>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <Link to="/foundation">
-              <Button variant="primary" size="lg" icon={ArrowRight}>
-                Explore Component Library
-              </Button>
-            </Link>
-            <Link to="/health">
-              <Button variant="secondary" size="lg" icon={Database}>
-                Check Database Health
-              </Button>
-            </Link>
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={() => setIsModalOpen(true)}
-            >
-              Test Modal Dialog
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Palette Tokens Section */}
-      <section className="py-10 border-b border-border">
-        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between mb-6">
-          <div>
-            <h2 className="text-lg font-semibold text-ink font-sans">
-              Curated Color Palette
-            </h2>
-            <p className="text-xs text-olive mt-0.5">
-              Strictly applied without neon accents, glows, or synthetic gradients.
-            </p>
-          </div>
-          <span className="text-xs text-olive mt-2 sm:mt-0 font-mono">
-            5 Design System Tokens
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {colorPalette.map((c) => (
-            <div
-              key={c.hex}
-              className="p-4 rounded border border-border bg-stone/30 flex flex-col justify-between h-36"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-ink">{c.name}</span>
-                <div className={`w-6 h-6 rounded border ${c.bgClass}`} />
-              </div>
-              <div>
-                <p className="text-xs font-mono font-medium text-ink">{c.hex}</p>
-                <p className="text-[11px] text-olive mt-1 leading-snug">{c.role}</p>
-              </div>
+          {/* Search Form + Sell Action */}
+          <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row gap-2.5 max-w-2xl">
+            <div className="flex-1">
+              <Input
+                placeholder="Search cycles, fx-991EX, algorithm textbooks, monitors..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                icon={Search}
+              />
             </div>
-          ))}
+            <div className="flex items-center gap-2">
+              <Button type="submit" variant="secondary" className="w-full sm:w-auto">
+                Search
+              </Button>
+              <Link to="/sell" className="w-full sm:w-auto">
+                <Button variant="primary" icon={PlusCircle} className="w-full">
+                  Sell an Item
+                </Button>
+              </Link>
+            </div>
+          </form>
         </div>
       </section>
 
-      {/* Responsive Breakpoint Verification Section */}
-      <section className="py-10 border-b border-border">
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold text-ink font-sans">
-            Responsive Layout Testing Matrix
-          </h2>
-          <p className="text-xs text-olive mt-0.5">
-            Verified across specified viewport widths from 360px mobile to 1440px desktop.
-          </p>
+      {/* Category Shortcuts */}
+      <section className="py-6 border-b border-border">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-ink">Browse by Category</h2>
+          <Link to="/explore" className="text-xs text-forest font-semibold hover:underline flex items-center gap-1">
+            View All <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {breakpoints.map((bp) => {
-            const Icon = bp.icon;
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {categories.map((cat) => {
+            const Icon = cat.icon;
+            const count = data.categoriesCount[cat.id] || 0;
             return (
-              <Card key={bp.label} variant="stone" padding="md" className="flex flex-col justify-between">
+              <Link
+                key={cat.id}
+                to={cat.id === 'other' ? '/explore' : `/explore?category=${cat.id}`}
+                className="p-3 rounded border border-border bg-stone hover:bg-stone-hover transition-colors flex flex-col justify-between h-24 group"
+              >
+                <div className="w-7 h-7 rounded bg-forest/10 border border-forest/20 text-forest flex items-center justify-center group-hover:bg-forest group-hover:text-paper transition-colors">
+                  <Icon className="w-4 h-4" />
+                </div>
                 <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-bold text-ink">{bp.label}</span>
-                    <Icon className="w-4 h-4 text-forest" />
-                  </div>
-                  <p className="text-xs text-olive leading-relaxed">
-                    {bp.desc}
-                  </p>
+                  <h3 className="text-xs font-semibold text-ink leading-tight truncate">{cat.label}</h3>
+                  <span className="text-[10px] text-olive font-mono">{count} live</span>
                 </div>
-                <div className="pt-3 mt-4 border-t border-border/60">
-                  <span className="text-[11px] font-medium text-forest flex items-center gap-1">
-                    <ShieldCheck className="w-3.5 h-3.5" /> Verified Responsive
-                  </span>
-                </div>
-              </Card>
+              </Link>
             );
           })}
         </div>
       </section>
 
-      {/* Development Roadmap Alignment */}
-      <section className="py-10">
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold text-ink font-sans">
-            Foundation Readiness
-          </h2>
-          <p className="text-xs text-olive mt-0.5">
-            Architecture and component building blocks prepared for upcoming phases.
-          </p>
+      {/* Main Content Loading / Error / Data */}
+      {loading ? (
+        <div className="py-16">
+          <LoadingState message="Loading campus marketplace..." description="Connecting to MongoDB live catalog" />
         </div>
+      ) : error ? (
+        <div className="py-12 text-center max-w-md mx-auto space-y-3">
+          <AlertCircle className="w-8 h-8 text-[#9E392F] mx-auto" />
+          <h3 className="text-base font-semibold text-ink">Unable to Load Auctions</h3>
+          <p className="text-xs text-olive leading-relaxed">{error}</p>
+          <Button variant="primary" size="sm" onClick={fetchHomeData}>
+            Retry Connection
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-12 py-8">
+          {/* Section 1: Closing Soon Auctions */}
+          {data.closingSoon.length > 0 && (
+            <section>
+              <div className="flex items-center justify-between mb-4 pb-2 border-b border-border">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#9E392F] animate-pulse" />
+                  <h2 className="text-base font-bold text-ink">Closing Soon</h2>
+                  <span className="text-xs text-olive hidden sm:inline">— Last chance to place bids</span>
+                </div>
+                <Link to="/explore?closingSoon=true" className="text-xs text-forest font-semibold hover:underline">
+                  See all closing soon
+                </Link>
+              </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card variant="stone" padding="md">
-            <CardHeader>
-              <CardTitle as="h3">Phase 1 Foundation</CardTitle>
-              <CardDescription>Design system, layout & health APIs</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="text-xs text-ink space-y-2 list-disc list-inside">
-                <li>Vite + React 18 frontend with Tailwind tokens</li>
-                <li>Express backend with Mongoose connection pooling</li>
-                <li>Live database health and error diagnostics</li>
-                <li>Clean sans-serif UI typography & editorial headers</li>
-              </ul>
-            </CardContent>
-            <CardFooter>
-              <Badge variant="forest" size="sm">Active Phase</Badge>
-            </CardFooter>
-          </Card>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {data.closingSoon.map((auction) => (
+                  <AuctionCard key={auction._id} auction={auction} />
+                ))}
+              </div>
+            </section>
+          )}
 
-          <Card variant="paper" padding="md">
-            <CardHeader>
-              <CardTitle as="h3">Phase 2: Authentication</CardTitle>
-              <CardDescription>Campus email login & student profiles</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="text-xs text-olive space-y-2 list-disc list-inside">
-                <li>Unified student account (buyer and seller)</li>
-                <li>Campus domain verification</li>
-                <li>Session & JWT auth infrastructure</li>
-              </ul>
-            </CardContent>
-            <CardFooter>
-              <Badge variant="olive" size="sm">Next Phase</Badge>
-            </CardFooter>
-          </Card>
+          {/* Section 2: Live Featured Auctions */}
+          <section>
+            <div className="flex items-center justify-between mb-4 pb-2 border-b border-border">
+              <div>
+                <h2 className="text-base font-bold text-ink">Active Campus Auctions</h2>
+                <p className="text-xs text-olive mt-0.5">Most competitive current bidding lots</p>
+              </div>
+              <Link to="/explore" className="text-xs text-forest font-semibold hover:underline">
+                Explore catalog
+              </Link>
+            </div>
 
-          <Card variant="paper" padding="md">
-            <CardHeader>
-              <CardTitle as="h3">Phase 3: Auction Listings</CardTitle>
-              <CardDescription>Product catalog, image uploads & search</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="text-xs text-olive space-y-2 list-disc list-inside">
-                <li>Product creation with reserve & starting bids</li>
-                <li>Item condition grading & categories</li>
-                <li>Socket.IO live auction countdown engine</li>
-              </ul>
-            </CardContent>
-            <CardFooter>
-              <Badge variant="olive" size="sm">Upcoming</Badge>
-            </CardFooter>
-          </Card>
+            {data.liveAuctions.length === 0 ? (
+              <Card variant="stone" padding="lg" className="text-center py-10">
+                <p className="text-xs text-olive">No live auctions currently listed. Be the first to sell!</p>
+                <Link to="/sell" className="inline-block mt-3">
+                  <Button variant="primary" size="sm">Create First Listing</Button>
+                </Link>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {data.liveAuctions.map((auction) => (
+                  <AuctionCard key={auction._id} auction={auction} />
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* Section 3: Recently Published */}
+          {data.recentlyPublished.length > 0 && (
+            <section>
+              <div className="flex items-center justify-between mb-4 pb-2 border-b border-border">
+                <div>
+                  <h2 className="text-base font-bold text-ink">Recently Published Items</h2>
+                  <p className="text-xs text-olive mt-0.5">Fresh listings from student sellers</p>
+                </div>
+                <Link to="/explore?sort=newest" className="text-xs text-forest font-semibold hover:underline">
+                  View latest
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {data.recentlyPublished.map((auction) => (
+                  <AuctionCard key={auction._id} auction={auction} />
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+      )}
+
+      {/* Trust & Policy Assurance Footer Banner */}
+      <section className="mt-8 pt-8 border-t border-border">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs text-olive">
+          <div className="p-4 rounded border border-border bg-stone/40">
+            <h4 className="font-semibold text-ink mb-1 flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-forest" />
+              Verified Student Profiles
+            </h4>
+            <p className="text-[11px] leading-relaxed">
+              Every bidder and seller holds a verified campus account. No anonymous bots or external third parties.
+            </p>
+          </div>
+          <div className="p-4 rounded border border-border bg-stone/40">
+            <h4 className="font-semibold text-ink mb-1 flex items-center gap-1.5">
+              <Clock className="w-4 h-4 text-forest" />
+              30-Second Anti-Sniping Protection
+            </h4>
+            <p className="text-[11px] leading-relaxed">
+              Bids in the final 30 seconds automatically extend the auction by 60 seconds, ensuring fair clearance.
+            </p>
+          </div>
+          <div className="p-4 rounded border border-border bg-stone/40">
+            <h4 className="font-semibold text-ink mb-1 flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-forest" />
+              Two-Party Handover Confirmation
+            </h4>
+            <p className="text-[11px] leading-relaxed">
+              Items are inspected in person on campus before both parties confirm completion of the sale.
+            </p>
+          </div>
         </div>
       </section>
-
-      {/* Interactive Modal Dialog Verification */}
-      <Dialog
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="Reusable Dialog Verification"
-        description="Testing accessibility, keyboard escape binding, and design system tokens."
-        footer={
-          <>
-            <Button variant="outline" size="sm" onClick={() => setIsModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="primary" size="sm" onClick={() => setIsModalOpen(false)}>
-              Understood
-            </Button>
-          </>
-        }
-      >
-        <p className="text-xs text-ink leading-relaxed">
-          This dialog component conforms to the NEXTowner design requirements. It uses restrained stone/paper surfaces, thin dividers, a quiet backdrop, and automatic escape key dismissal.
-        </p>
-      </Dialog>
     </PageContainer>
   );
 };

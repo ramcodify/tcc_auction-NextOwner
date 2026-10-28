@@ -1,0 +1,25 @@
+{
+  "name": "NEXTowner — Campus Auction Web Platform",
+  "short_name": "NEXTowner",
+  "description": "Peer-to-peer campus auctions for students to buy and sell pre-owned textbooks, cycles, calculators, and electronics.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F7F5F0",
+  "theme_color": "#315B43",
+  "orientation": "portrait",
+  "categories": ["shopping", "education", "utilities"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
