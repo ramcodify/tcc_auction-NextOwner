@@ -19,6 +19,7 @@ import Card from '../components/common/Card.jsx';
 import Badge from '../components/common/Badge.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useAssistant } from '../context/AssistantContext.jsx';
+import { getImageUrl, handleImageError } from '../utils/imageUrl.js';
 
 export const AssistantPage = () => {
   const { user } = useAuth();
@@ -141,14 +142,29 @@ export const AssistantPage = () => {
                           key={item.id}
                           className="p-2.5 rounded bg-stone border border-border flex items-center gap-2.5"
                         >
-                          <img
-                            src={
-                              item.photo ||
-                              'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=300&q=80'
-                            }
-                            alt=""
-                            className="w-12 h-12 object-cover rounded border border-border shrink-0"
-                          />
+                          <div className="relative w-12 h-12 rounded border border-border bg-paper overflow-hidden shrink-0 flex items-center justify-center">
+                            <img
+                              src={getImageUrl(item.photo)}
+                              alt=""
+                              className="absolute inset-0 w-full h-full object-cover blur-md opacity-25 scale-125 pointer-events-none"
+                              aria-hidden="true"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                              }}
+                            />
+                            <img
+                              src={getImageUrl(item.photo)}
+                              alt=""
+                              className="relative z-10 w-full h-full object-contain p-0.5"
+                              onError={(e) =>
+                                handleImageError(
+                                  e,
+                                  item.photo,
+                                  'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=300&q=80'
+                                )
+                              }
+                            />
+                          </div>
                           <div className="min-w-0 flex-1">
                             <h4 className="font-bold text-ink truncate text-[11px]">{item.title}</h4>
                             <p className="text-forest font-semibold text-xs">

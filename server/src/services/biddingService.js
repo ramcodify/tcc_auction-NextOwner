@@ -114,6 +114,7 @@ export const placeBid = async ({ auctionId, bidderId, amount, isAuto = false }) 
       newBid: bidPayload
     };
 
+    console.log(`[Socket Broadcast] Emitting bid_placed to auction:${auction._id} and globally. Price: ${auction.currentPrice}, bidCount: ${auction.bidCount}`);
     io.to(`auction:${auction._id}`).emit('bid_placed', payload);
     io.emit('bid_placed', payload);
 

@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useAssistant } from '../../context/AssistantContext.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
-import { getImageUrl } from '../../utils/imageUrl.js';
+import { getImageUrl, handleImageError } from '../../utils/imageUrl.js';
 import Button from '../common/Button.jsx';
 import Badge from '../common/Badge.jsx';
 
@@ -217,11 +217,20 @@ export const AIAssistantPopup = () => {
                           key={item.id}
                           className="p-1.5 sm:p-2 rounded bg-paper border border-border flex items-center gap-2 hover:border-forest transition-colors"
                         >
-                          <img
-                            src={getImageUrl(item.photo)}
-                            alt=""
-                            className="w-8 h-8 sm:w-10 sm:h-10 object-cover rounded border border-border shrink-0"
-                          />
+                          <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded border border-border bg-stone overflow-hidden shrink-0 flex items-center justify-center">
+                            <img
+                              src={getImageUrl(item.photo)}
+                              alt=""
+                              className="relative z-10 w-full h-full object-contain p-0.5"
+                              onError={(e) =>
+                                handleImageError(
+                                  e,
+                                  item.photo,
+                                  'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=200&q=80'
+                                )
+                              }
+                            />
+                          </div>
                           <div className="min-w-0 flex-1">
                             <h4 className="font-bold text-ink truncate text-[10px] sm:text-[11px]">
                               {item.title}

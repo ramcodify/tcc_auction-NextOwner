@@ -1,15 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Bookmark, Clock, Gavel, User, Sparkles } from 'lucide-react';
 import Badge from '../common/Badge.jsx';
 import CountdownTimer from './CountdownTimer.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { useSocket } from '../../context/SocketContext.jsx';
 import { getImageUrl, handleImageError } from '../../utils/imageUrl.js';
 
 export const AuctionCard = ({ auction, onWatchToggle, isInitiallyWatched = false }) => {
   const { user } = useAuth();
+  const { socket } = useSocket();
   const [isWatched, setIsWatched] = useState(isInitiallyWatched);
   const [watchLoading, setWatchLoading] = useState(false);
+
+  // Real-time card pricing state
+  const [currentPrice, setCurrentPrice] = useState(auction.currentPrice);
+  const [bidCount, setBidCount] = useState(auction.bidCount);
+  const [closesAt, setClosesAt] = useState(auction.closesAt);
+
+  useEffect(() => {
+    setCurrentPrice(auction.currentPrice);
+    setBidCount(auction.bidCount);
+    setClosesAt(auction.closesAt);
+  }, [auction.currentPrice, auction.bidCount, auction.closesAt]);
+
+  useEffect(() => {
+    if (!socket || !auction?._id) return;
+    const handleBidPlaced = (data) => {
+      if (String(data.auctionId) === String(auction._id)) {
+        setCurrentPrice(Number(data.currentPrice));
+        setBidCount(Number(data.bidCount));
+        if (data.closesAt) setClosesAt(data.closesAt);
+      }
+    };
+    socket.on('bid_placed', handleBidPlaced);
+    return () => socket.off('bid_placed', handleBidPlaced);
+  }, [socket, auction?._id]);
 
   const handleWatchClick = async (e) => {
     e.preventDefault();
@@ -123,19 +149,19 @@ export const AuctionCard = ({ auction, onWatchToggle, isInitiallyWatched = false
           <div className="mt-auto pt-2 border-t border-border/60 flex items-end justify-between">
             <div>
               <span className="text-[10px] text-olive uppercase font-medium block">
-                {auction.bidCount > 0 ? 'Leading Bid' : 'Starting Price'}
+                {bidCount > 0 ? 'Leading Bid' : 'Starting Price'}
               </span>
               <span className="text-base font-bold text-ink font-sans">
-                ₹{auction.currentPrice?.toLocaleString('en-IN') || auction.startingPrice?.toLocaleString('en-IN')}
+                ₹{currentPrice?.toLocaleString('en-IN') || auction.startingPrice?.toLocaleString('en-IN')}
               </span>
             </div>
 
             <div className="text-right">
               <span className="text-[11px] font-medium text-forest block">
-                {auction.bidCount > 0 ? `${auction.bidCount} bid${auction.bidCount > 1 ? 's' : ''}` : 'No bids yet'}
+                {bidCount > 0 ? `${bidCount} bid${bidCount > 1 ? 's' : ''}` : 'No bids yet'}
               </span>
               {isLive ? (
-                <CountdownTimer closesAt={auction.closesAt} compact={true} />
+                <CountdownTimer closesAt={closesAt} compact={true} />
               ) : (
                 <Badge variant={auction.status === 'completed' ? 'forest' : 'olive'} size="sm">
                   {auction.status.replace('_', ' ')}

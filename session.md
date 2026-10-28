@@ -1437,8 +1437,78 @@ Implemented and verified the **Natural Language Budget Search & Safe Consent-Bas
    - If an item's next minimum bid exceeds the student's budget (e.g. asking to bid up to ₹1,000 on an item starting at ₹1,400), the chatbot refuses:
      `"⚠️ Budget Limit Exceeded: The current price is ₹1,400... NEXTowner rules strictly prevent bidding beyond your authorized budget."`
    - It will **never** bid or suggest a bid higher than the student's stated limit.
-4. **Student Privacy Protection**:
-   - Public auction queries sanitize all seller/bidder identifiers to protect student privacy.
-   - Private proxy bidding maximums (`AutoBid` ceilings), student phone numbers, email addresses, and passwords are never exposed in assistant responses.
+---
+
+## Turn 11: User
+
+update the session.md
 
 ---
+
+## Response 11: AI Assistant (Antigravity)
+
+Updated and synchronized `session.md` to reflect all recent conversation turns, architectural decisions, code changes, and test results.
+
+---
+
+## Turn 12: User
+
+the bid value is not updating in the realtime from one user to the other it upates only after refreshing the page
+
+---
+
+## Response 12: AI Assistant (Antigravity)
+
+### Root Cause Analysis
+1. **Initial Mount Socket Race Condition**:
+   - In `AuctionDetailsPage.jsx`, `joinAuction(id)` was invoked in an effect with `[id]` as its only dependency:
+     ```javascript
+     useEffect(() => {
+       fetchAuction();
+       joinAuction(id);
+       return () => leaveAuction(id);
+     }, [id]);
+     ```
+   - When the component mounted on initial page load, `socket` in `SocketContext` was still initializing (`socket === null`).
+   - Consequently, `joinAuction(id)` evaluated `if (socket)` to `false` and failed to emit `join_auction_room`.
+   - When `socket` finished connecting 50ms later, the effect did not re-run because `id` had not changed.
+   - Result: User 2's browser never joined the Socket.IO room `auction:${id}`, completely missing targeted real-time room broadcasts.
+2. **Missing Ref-Based Synchronous Socket Tracking**:
+   - `SocketContext` relied solely on asynchronous React state `const [socket, setSocket] = useState(null)`, creating closure traps for helper methods like `joinAuction` and `leaveAuction`.
+3. **Cross-Origin Host Resolution**:
+   - `SocketContext` was hardcoding `socketUrl = 'http://localhost:5000'` when `window.location.port === '5173'`.
+   - Browsers accessed via `http://127.0.0.1:5173` faced cross-origin socket handshakes against `localhost:5000` rather than leveraging Vite's pre-configured same-origin `/socket.io` proxy with `ws: true`.
+4. **Stale Node Daemon**:
+   - The backend server process was running an earlier in-memory build that did not include room join diagnostic logging.
+5. **AuctionCard Static State**:
+   - `AuctionCard.jsx` did not subscribe to real-time `bid_placed` events, leaving cards on the Home and Explore pages static until manual page reload.
+
+### Architectural Solution & Implementation
+1. **Guaranteed Room Subscription & Ref Sync ([`SocketContext.jsx`](file:///home/ram/Desktop/NEXTOWNER/tcc_auction-NextOwner/client/src/context/SocketContext.jsx))**:
+   - Switched to `socketUrl = window.location.origin` to route WebSocket traffic seamlessly through Vite's same-origin proxy (compatible across `127.0.0.1`, `localhost`, and mobile LAN IP).
+   - Added `socketRef.current = newSocket` so room subscription helpers (`joinAuction`, `leaveAuction`) can emit synchronously without awaiting state updates.
+   - Enhanced `newSocket.on('connect')` to automatically re-join the active auction lot stored in `currentAuctionRoomRef.current`.
+2. **Deterministic Real-time Listener Binding ([`AuctionDetailsPage.jsx`](file:///home/ram/Desktop/NEXTOWNER/tcc_auction-NextOwner/client/src/pages/AuctionDetailsPage.jsx))**:
+   - Bound the real-time effect to `[socket, id, joinAuction, leaveAuction]`. As soon as `socket` initializes, it immediately emits `socket.emit('join_auction_room', String(id))`.
+   - Used `auctionRef.current` to calculate increment steps dynamically, eliminating unnecessary listener re-binding on price changes.
+   - Forced numeric casting (`Number(data.currentPrice)`) and instant state updates for `currentPrice`, `bidCount`, `closesAt`, `leadingBidderId`, `bidAmount`, and `bidHistory`.
+3. **Real-time Live Cards ([`AuctionCard.jsx`](file:///home/ram/Desktop/NEXTOWNER/tcc_auction-NextOwner/client/src/components/auction/AuctionCard.jsx))**:
+   - Added real-time listener for `bid_placed` matching `data.auctionId === auction._id`. Cards across Home, Explore, and Watchlist now reflect live bid counts and prices instantaneously.
+4. **Server Diagnostic Logging & Daemon Restart**:
+   - Added room join and broadcast logs in `server/src/services/notificationService.js` and `server/src/services/biddingService.js`.
+   - Restarted backend daemon (running on task-1094).
+
+### Automated End-to-End Verification
+- **Verification Script**:
+  - Client 1 connected through Vite proxy (`http://127.0.0.1:5173`) and joined room `auction:6ae19c303039eaa28fc9c286`.
+  - Client 2 (authenticated as `Jordan Rivera`) submitted a bid of ₹940 via `/api/auctions/6ae19c303039eaa28fc9c286/bid`.
+- **Server Log Output**:
+  ```
+  [Socket.IO] Client XgyS7nvL8_ABqK__AAAF joined auction room auction:6ae19c303039eaa28fc9c286
+  [Socket Broadcast] Emitting bid_placed to auction:6ae19c303039eaa28fc9c286 and globally. Price: 940, bidCount: 9
+  ```
+- **Client 1 Event Received**:
+  ```
+  VERIFIED SUCCESS! Client 1 received real-time bid_placed event: 940 9 Jordan Rivera
+  ```
+- **Production Bundle**: `npm run build` compiled 1,652 modules in 2.49s with 0 errors.

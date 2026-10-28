@@ -6,10 +6,13 @@ export const initSocket = (io) => {
   ioInstance = io;
 
   io.on('connection', (socket) => {
+    console.log(`[Socket.IO] New client connected: ${socket.id} (transport: ${socket.conn.transport.name})`);
+
     // Client joins room for their personal user alerts
     socket.on('join_user_room', (userId) => {
       if (userId) {
         socket.join(`user:${userId}`);
+        console.log(`[Socket.IO] Client ${socket.id} joined user room user:${userId}`);
       }
     });
 
@@ -17,17 +20,19 @@ export const initSocket = (io) => {
     socket.on('join_auction_room', (auctionId) => {
       if (auctionId) {
         socket.join(`auction:${auctionId}`);
+        console.log(`[Socket.IO] Client ${socket.id} joined auction room auction:${auctionId}`);
       }
     });
 
     socket.on('leave_auction_room', (auctionId) => {
       if (auctionId) {
         socket.leave(`auction:${auctionId}`);
+        console.log(`[Socket.IO] Client ${socket.id} left auction room auction:${auctionId}`);
       }
     });
 
-    socket.on('disconnect', () => {
-      // Room memberships automatically cleaned up
+    socket.on('disconnect', (reason) => {
+      console.log(`[Socket.IO] Client ${socket.id} disconnected: ${reason}`);
     });
   });
 };

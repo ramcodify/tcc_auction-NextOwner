@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   Gavel,
@@ -18,7 +18,15 @@ import {
   Send,
   Zap,
   Check,
-  X
+  X,
+  Maximize2,
+  Minimize2,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
+  ChevronLeft,
+  ChevronRight,
+  ExternalLink
 } from 'lucide-react';
 import PageContainer from '../components/common/PageContainer.jsx';
 import Button from '../components/common/Button.jsx';
@@ -30,7 +38,7 @@ import CountdownTimer from '../components/auction/CountdownTimer.jsx';
 import { LoadingState } from '../components/common/LoadingState.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useSocket } from '../context/SocketContext.jsx';
-import { getImageUrl } from '../utils/imageUrl.js';
+import { getImageUrl, handleImageError } from '../utils/imageUrl.js';
 
 export const AuctionDetailsPage = () => {
   const { id } = useParams();
@@ -48,6 +56,12 @@ export const AuctionDetailsPage = () => {
 
   // Active Photo in Gallery
   const [activePhotoIdx, setActivePhotoIdx] = useState(0);
+
+  // Lightbox & Image Presentation State
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [lightboxZoom, setLightboxZoom] = useState(1);
+  const [isFitMode, setIsFitMode] = useState(true); // default true: uncropped full item view
 
   // Manual Bidding Form
   const [bidAmount, setBidAmount] = useState('');
@@ -96,27 +110,37 @@ export const AuctionDetailsPage = () => {
     }
   };
 
+  const auctionRef = useRef(auction);
+  useEffect(() => {
+    auctionRef.current = auction;
+  }, [auction]);
+
   useEffect(() => {
     fetchAuction();
-    joinAuction(id);
-
-    return () => {
-      leaveAuction(id);
-    };
   }, [id]);
 
-  // Real-time Socket.IO Listeners
+  // Real-time Socket.IO Listeners & Guaranteed Room Subscription
   useEffect(() => {
+    if (!id) return;
+
+    // Join room via helper and direct emit to guarantee subscription
+    joinAuction(id);
+    if (socket) {
+      console.log('[AuctionDetails] Subscribing socket to auction lot:', id);
+      socket.emit('join_auction_room', String(id));
+    }
+
     if (!socket) return;
 
     const handleBidPlaced = (data) => {
+      console.log('[AuctionDetails] Real-time bid_placed received:', data);
       if (String(data.auctionId) === String(id)) {
         setAuction((prev) => {
           if (!prev) return prev;
           return {
             ...prev,
-            currentPrice: data.currentPrice,
-            bidCount: data.bidCount,
+            currentPrice: Number(data.currentPrice),
+            bidCount: Number(data.bidCount),
             closesAt: data.closesAt,
             leadingBidderId: data.leadingBidderId || data.newBid?.bidder?.id || prev.leadingBidderId
           };
@@ -124,19 +148,22 @@ export const AuctionDetailsPage = () => {
 
         if (data.newBid) {
           setBidHistory((prev) => {
-            const exists = prev.some((b) => String(b.id || b._id) === String(data.newBid.id));
+            const newId = String(data.newBid.id || data.newBid._id);
+            const exists = prev.some((b) => String(b.id || b._id) === newId);
             if (exists) return prev;
             return [data.newBid, ...prev];
           });
         }
 
         // Update prefilled bid amount to next valid increment
-        setBidAmount(String(data.currentPrice + (auction?.minimumIncrement || 20)));
+        const increment = auctionRef.current?.minimumIncrement || 20;
+        setBidAmount(String(Number(data.currentPrice) + increment));
       }
     };
 
     const handleAuctionExtended = (data) => {
-      if (data.auctionId === id) {
+      console.log('[AuctionDetails] Real-time auction_extended received:', data);
+      if (String(data.auctionId) === String(id)) {
         setAuction((prev) => (prev ? { ...prev, closesAt: data.closesAt } : prev));
         setExtensionNotice(data.message);
         setTimeout(() => setExtensionNotice(''), 8000);
@@ -144,7 +171,8 @@ export const AuctionDetailsPage = () => {
     };
 
     const handleAuctionClosed = (data) => {
-      if (data.auctionId === id) {
+      console.log('[AuctionDetails] Real-time auction_closed received:', data);
+      if (String(data.auctionId) === String(id)) {
         setAuction((prev) => (prev ? { ...prev, status: data.status } : prev));
       }
     };
@@ -154,11 +182,37 @@ export const AuctionDetailsPage = () => {
     socket.on('auction_closed', handleAuctionClosed);
 
     return () => {
+      console.log('[AuctionDetails] Cleaning up listeners for auction lot:', id);
       socket.off('bid_placed', handleBidPlaced);
       socket.off('auction_extended', handleAuctionExtended);
       socket.off('auction_closed', handleAuctionClosed);
+      leaveAuction(id);
     };
-  }, [socket, id, auction?.minimumIncrement]);
+  }, [socket, id, joinAuction, leaveAuction]);
+
+  // Handle Lightbox keyboard shortcuts (Esc to close, Arrow keys to navigate)
+  useEffect(() => {
+    if (!isLightboxOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setIsLightboxOpen(false);
+      } else if (e.key === 'ArrowRight' && auction?.photos?.length > 1) {
+        setLightboxIndex((prev) => (prev + 1) % auction.photos.length);
+        setLightboxZoom(1);
+      } else if (e.key === 'ArrowLeft' && auction?.photos?.length > 1) {
+        setLightboxIndex((prev) => (prev - 1 + auction.photos.length) % auction.photos.length);
+        setLightboxZoom(1);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isLightboxOpen, auction?.photos?.length]);
+
+  const openLightbox = (index = activePhotoIdx) => {
+    setLightboxIndex(index);
+    setLightboxZoom(1);
+    setIsLightboxOpen(true);
+  };
 
   // Handle Manual Bid Submission
   const handlePlaceBid = async (e) => {
@@ -395,23 +449,110 @@ export const AuctionDetailsPage = () => {
         <div className="lg:col-span-7 space-y-6">
           {/* Main Photo & Thumbnails */}
           <div className="space-y-3">
-            <div className="relative aspect-[4/3] rounded border border-border bg-stone overflow-hidden">
+            <div className="relative aspect-[4/3] rounded border border-border bg-paper overflow-hidden flex items-center justify-center group">
+              {/* Ambient Blurred Backdrop for seamless aspect ratio framing */}
+              <img
+                src={getImageUrl(auction.photos[activePhotoIdx])}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-25 scale-110 pointer-events-none"
+                aria-hidden="true"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                }}
+              />
+
+              {/* Crisp Foreground Image */}
               <img
                 src={getImageUrl(auction.photos[activePhotoIdx])}
                 alt={auction.title}
-                className="w-full h-full object-cover"
+                onClick={() => openLightbox(activePhotoIdx)}
+                className={`relative z-10 w-full h-full transition-all duration-200 cursor-zoom-in ${
+                  isFitMode ? 'object-contain p-2' : 'object-cover'
+                }`}
                 onError={(e) => {
-                  e.target.src = 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80';
+                  handleImageError(
+                    e,
+                    auction.photos[activePhotoIdx],
+                    'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80'
+                  );
                 }}
               />
-              <div className="absolute top-3 left-3 flex gap-2">
-                <Badge variant="stone" size="sm" className="bg-paper/90 uppercase font-semibold">
+
+              {/* Badges Overlay */}
+              <div className="absolute top-3 left-3 z-20 flex gap-2 pointer-events-none">
+                <Badge variant="stone" size="sm" className="bg-paper/95 uppercase font-semibold shadow-sm">
                   {auction.category}
                 </Badge>
-                <Badge variant="forest" size="sm" className="bg-paper/90">
+                <Badge variant="forest" size="sm" className="bg-paper/95 shadow-sm">
                   {auction.condition.replace('_', ' ')}
                 </Badge>
               </div>
+
+              {/* Top-Right Control Buttons (Fit/Fill Toggle + Fullscreen Lightbox) */}
+              <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setIsFitMode(!isFitMode)}
+                  title={isFitMode ? 'Fill container (Cover)' : 'Fit entire item (Contain)'}
+                  className="px-2 py-1 rounded bg-paper/90 hover:bg-paper text-ink border border-border text-[11px] font-medium shadow-sm transition-colors flex items-center gap-1 backdrop-blur-sm"
+                >
+                  {isFitMode ? (
+                    <>
+                      <Maximize2 className="w-3 h-3 text-forest" />
+                      <span className="hidden sm:inline">Fit</span>
+                    </>
+                  ) : (
+                    <>
+                      <Minimize2 className="w-3 h-3 text-forest" />
+                      <span className="hidden sm:inline">Fill</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => openLightbox(activePhotoIdx)}
+                  title="Expand to Fullscreen Lightbox"
+                  className="p-1.5 rounded bg-paper/90 hover:bg-paper text-ink border border-border shadow-sm transition-colors backdrop-blur-sm"
+                >
+                  <ZoomIn className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Carousel Arrows on main photo if multiple */}
+              {auction.photos.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActivePhotoIdx((prev) => (prev - 1 + auction.photos.length) % auction.photos.length);
+                    }}
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 z-20 p-1.5 rounded-full bg-paper/85 hover:bg-paper text-ink border border-border shadow-md transition-all opacity-80 hover:opacity-100"
+                    aria-label="Previous photo"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActivePhotoIdx((prev) => (prev + 1) % auction.photos.length);
+                    }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 z-20 p-1.5 rounded-full bg-paper/85 hover:bg-paper text-ink border border-border shadow-md transition-all opacity-80 hover:opacity-100"
+                    aria-label="Next photo"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </>
+              )}
+
+              {/* Bottom Right Photo Indicator */}
+              {auction.photos.length > 1 && (
+                <div className="absolute bottom-2.5 right-2.5 z-20 px-2 py-0.5 rounded bg-paper/90 backdrop-blur-sm text-[10px] font-mono font-medium text-ink border border-border shadow-sm">
+                  {activePhotoIdx + 1} / {auction.photos.length}
+                </div>
+              )}
             </div>
 
             {/* Thumbnails row */}
@@ -422,11 +563,24 @@ export const AuctionDetailsPage = () => {
                     key={idx}
                     type="button"
                     onClick={() => setActivePhotoIdx(idx)}
-                    className={`w-16 h-16 rounded border overflow-hidden shrink-0 transition-opacity ${
-                      activePhotoIdx === idx ? 'border-forest ring-2 ring-forest/30' : 'border-border opacity-70 hover:opacity-100'
+                    className={`w-16 h-16 rounded border overflow-hidden shrink-0 transition-all bg-paper p-0.5 ${
+                      activePhotoIdx === idx
+                        ? 'border-forest ring-2 ring-forest/40 scale-105'
+                        : 'border-border opacity-70 hover:opacity-100'
                     }`}
                   >
-                    <img src={getImageUrl(photo)} alt="" className="w-full h-full object-cover" />
+                    <img
+                      src={getImageUrl(photo)}
+                      alt=""
+                      className="w-full h-full object-contain"
+                      onError={(e) =>
+                        handleImageError(
+                          e,
+                          photo,
+                          'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=200&q=80'
+                        )
+                      }
+                    />
                   </button>
                 ))}
               </div>
@@ -861,6 +1015,170 @@ export const AuctionDetailsPage = () => {
           </Card>
         </div>
       </div>
+
+      {/* High-Resolution Full-Screen Lightbox Modal */}
+      {isLightboxOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-[#141613]/95 backdrop-blur-md flex flex-col justify-between p-3 sm:p-6 transition-all"
+          onClick={() => setIsLightboxOpen(false)}
+        >
+          {/* Lightbox Header Bar */}
+          <div
+            className="flex items-center justify-between text-paper pb-3 border-b border-paper/10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-xs sm:text-sm font-semibold truncate max-w-xs sm:max-w-md">
+                {auction.title}
+              </span>
+              {auction.photos.length > 1 && (
+                <span className="text-xs text-paper/60 font-mono">
+                  ({lightboxIndex + 1} of {auction.photos.length})
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              {/* Zoom Controls */}
+              <button
+                type="button"
+                onClick={() => setLightboxZoom((prev) => Math.max(0.75, prev - 0.25))}
+                title="Zoom Out"
+                className="p-1.5 rounded hover:bg-paper/15 text-paper/80 hover:text-paper transition-colors"
+              >
+                <ZoomOut className="w-4 h-4" />
+              </button>
+              <span className="text-[11px] font-mono text-paper/80 min-w-[42px] text-center">
+                {Math.round(lightboxZoom * 100)}%
+              </span>
+              <button
+                type="button"
+                onClick={() => setLightboxZoom((prev) => Math.min(3, prev + 0.25))}
+                title="Zoom In"
+                className="p-1.5 rounded hover:bg-paper/15 text-paper/80 hover:text-paper transition-colors"
+              >
+                <ZoomIn className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setLightboxZoom(1)}
+                title="Reset Zoom"
+                className="p-1.5 rounded hover:bg-paper/15 text-paper/80 hover:text-paper transition-colors"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+
+              {/* Open direct in new tab */}
+              <a
+                href={getImageUrl(auction.photos[lightboxIndex])}
+                target="_blank"
+                rel="noreferrer"
+                title="Open original high-res image"
+                className="p-1.5 rounded hover:bg-paper/15 text-paper/80 hover:text-paper transition-colors ml-1"
+              >
+                <ExternalLink className="w-4 h-4" />
+              </a>
+
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={() => setIsLightboxOpen(false)}
+                title="Close (Esc)"
+                className="p-1.5 rounded-full bg-paper/15 hover:bg-paper/30 text-paper transition-colors ml-2"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Lightbox Main Image Viewport */}
+          <div
+            className="flex-1 relative flex items-center justify-center overflow-auto my-2 p-2"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setIsLightboxOpen(false);
+            }}
+          >
+            {/* Prev Photo Arrow */}
+            {auction.photos.length > 1 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLightboxIndex((prev) => (prev - 1 + auction.photos.length) % auction.photos.length);
+                  setLightboxZoom(1);
+                }}
+                className="absolute left-3 top-1/2 -translate-y-1/2 z-30 p-2.5 rounded-full bg-black/60 hover:bg-black/90 text-paper border border-paper/20 transition-transform active:scale-95"
+                aria-label="Previous Photo"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+            )}
+
+            <div
+              className="transition-transform duration-150 ease-out flex items-center justify-center max-w-full max-h-full"
+              style={{ transform: `scale(${lightboxZoom})` }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={getImageUrl(auction.photos[lightboxIndex])}
+                alt={auction.title}
+                className="max-w-[90vw] max-h-[75vh] object-contain rounded shadow-2xl select-none"
+                onError={(e) =>
+                  handleImageError(
+                    e,
+                    auction.photos[lightboxIndex],
+                    'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=1200&q=80'
+                  )
+                }
+              />
+            </div>
+
+            {/* Next Photo Arrow */}
+            {auction.photos.length > 1 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLightboxIndex((prev) => (prev + 1) % auction.photos.length);
+                  setLightboxZoom(1);
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 z-30 p-2.5 rounded-full bg-black/60 hover:bg-black/90 text-paper border border-paper/20 transition-transform active:scale-95"
+                aria-label="Next Photo"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+            )}
+          </div>
+
+          {/* Bottom Thumbnails Strip */}
+          {auction.photos.length > 1 && (
+            <div
+              className="flex justify-center items-center gap-2 pt-2 border-t border-paper/10 overflow-x-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {auction.photos.map((photo, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => {
+                    setLightboxIndex(idx);
+                    setLightboxZoom(1);
+                  }}
+                  className={`w-14 h-14 rounded overflow-hidden border transition-all shrink-0 bg-black/40 p-0.5 ${
+                    lightboxIndex === idx ? 'border-forest ring-2 ring-forest scale-105' : 'border-paper/20 opacity-60 hover:opacity-100'
+                  }`}
+                >
+                  <img
+                    src={getImageUrl(photo)}
+                    alt=""
+                    className="w-full h-full object-contain"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </PageContainer>
   );
 };

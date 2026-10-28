@@ -9,7 +9,7 @@ import {
   Sparkles,
   Gavel
 } from 'lucide-react';
-import { getImageUrl } from '../../utils/imageUrl.js';
+import { getImageUrl, handleImageError } from '../../utils/imageUrl.js';
 import Badge from './Badge.jsx';
 
 export const SearchAutocomplete = ({
@@ -216,15 +216,20 @@ export const SearchAutocomplete = ({
                     }`}
                   >
                     {/* Item Thumbnail */}
-                    <img
-                      src={photoSrc}
-                      alt=""
-                      className="w-11 h-11 object-cover rounded border border-border shrink-0 bg-stone"
-                      onError={(e) => {
-                        e.target.src =
-                          'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=200&q=80';
-                      }}
-                    />
+                    <div className="w-11 h-11 rounded border border-border shrink-0 bg-paper overflow-hidden flex items-center justify-center p-0.5">
+                      <img
+                        src={photoSrc}
+                        alt=""
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          handleImageError(
+                            e,
+                            item.photos?.[0],
+                            'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=200&q=80'
+                          );
+                        }}
+                      />
+                    </div>
 
                     {/* Title & Metadata */}
                     <div className="flex-1 min-w-0">

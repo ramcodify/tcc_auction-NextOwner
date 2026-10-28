@@ -9,7 +9,9 @@ import {
   Calendar,
   Clock,
   ShieldCheck,
-  ArrowRight
+  ArrowRight,
+  Eye,
+  ZoomIn
 } from 'lucide-react';
 import PageContainer from '../components/common/PageContainer.jsx';
 import Button from '../components/common/Button.jsx';
@@ -40,6 +42,7 @@ export const CreateListingPage = () => {
 
   const [photoFiles, setPhotoFiles] = useState([]);
   const [photoPreviews, setPhotoPreviews] = useState([]);
+  const [previewModalIndex, setPreviewModalIndex] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -152,13 +155,39 @@ export const CreateListingPage = () => {
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {photoPreviews.map((preview, idx) => (
-                <div key={idx} className="relative aspect-square rounded border border-border overflow-hidden bg-paper group">
-                  <img src={preview} alt="" className="w-full h-full object-cover" />
+                <div
+                  key={idx}
+                  className="relative aspect-square rounded border border-border overflow-hidden bg-paper group flex items-center justify-center cursor-pointer"
+                  onClick={() => setPreviewModalIndex(idx)}
+                  title="Click to view full photo"
+                >
+                  {/* Ambient blur */}
+                  <img
+                    src={preview}
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover blur-md opacity-20 scale-110 pointer-events-none"
+                    aria-hidden="true"
+                  />
+                  {/* Sharp uncropped preview */}
+                  <img src={preview} alt={`Upload ${idx + 1}`} className="relative z-10 w-full h-full object-contain p-1" />
+
+                  {/* Hover overlay with zoom hint */}
+                  <div className="absolute inset-0 bg-ink/20 opacity-0 group-hover:opacity-100 transition-opacity z-20 flex items-center justify-center pointer-events-none">
+                    <span className="bg-paper/90 text-ink text-[10px] font-semibold px-2 py-0.5 rounded shadow-sm flex items-center gap-1">
+                      <ZoomIn className="w-3 h-3 text-forest" /> View Full
+                    </span>
+                  </div>
+
+                  {/* Remove button */}
                   <button
                     type="button"
-                    onClick={() => handleRemovePhoto(idx)}
-                    className="absolute top-1 right-1 p-1 rounded-full bg-ink/70 text-paper hover:bg-[#9E392F] transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemovePhoto(idx);
+                    }}
+                    className="absolute top-1.5 right-1.5 z-30 p-1 rounded-full bg-ink/80 text-paper hover:bg-[#9E392F] transition-colors shadow-sm"
                     aria-label="Remove photo"
+                    title="Remove photo"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -304,6 +333,41 @@ export const CreateListingPage = () => {
           </Button>
         </form>
       </div>
+
+      {/* Uploaded Photo Full Preview Modal */}
+      {previewModalIndex !== null && photoPreviews[previewModalIndex] && (
+        <div
+          className="fixed inset-0 z-50 bg-[#141613]/90 backdrop-blur-md flex flex-col justify-between p-4"
+          onClick={() => setPreviewModalIndex(null)}
+        >
+          <div
+            className="flex items-center justify-between text-paper pb-2 border-b border-paper/10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span className="text-xs font-semibold">
+              Photo Preview ({previewModalIndex + 1} of {photoPreviews.length})
+            </span>
+            <button
+              type="button"
+              onClick={() => setPreviewModalIndex(null)}
+              className="p-1 rounded-full bg-paper/20 hover:bg-paper/30 text-paper transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="flex-1 flex items-center justify-center p-2">
+            <img
+              src={photoPreviews[previewModalIndex]}
+              alt="Uploaded Item Preview"
+              className="max-w-[90vw] max-h-[80vh] object-contain rounded shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+          <div className="text-center text-xs text-paper/70 pb-2">
+            Click outside or press close to return to listing form
+          </div>
+        </div>
+      )}
     </PageContainer>
   );
 };
