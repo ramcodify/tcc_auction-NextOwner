@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-paper: #F7F5F0;
+    --color-forest: #315B43;
+    --color-ink: #20231F;
+    --color-stone: #E8E5DB;
+    --color-olive: #77776D;
+  }
+
+  body {
+    background-color: #F7F5F0;
+    color: #20231F;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  /* Thin restrained dividers */
+  hr {
+    border: 0;
+    border-top: 1px solid #DBD7CA;
+  }
+}
+
+/* Custom utility classes */
+@layer utilities {
+  .editorial-heading {
+    font-family: 'Newsreader', Georgia, serif;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+}
