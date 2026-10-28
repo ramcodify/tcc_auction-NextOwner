@@ -1369,3 +1369,24 @@ Implemented the four requested enhancements:
      - Added `<NotificationToastContainer />` globally into [`AppShell.jsx`](file:///home/ram/Desktop/NEXTOWNER/tcc_auction-NextOwner/client/src/components/layout/AppShell.jsx).
 
 ---
+
+## Turn 8: User
+
+make the pop to be viewed small in the mobile view
+
+---
+
+## Response 8: AI Assistant (Antigravity)
+
+Optimized the **AI Assistant Pop-up Window** specifically for mobile screens:
+1. **Compact Dimensions on Mobile**:
+   - Reduced mobile height from 560px down to `h-[300px]` (taking up less than 45% of the mobile viewport), leaving the campus marketplace and auction listings clearly visible behind it.
+   - Reduced mobile width to `w-[88vw] max-w-[360px]`, docked comfortably above the bottom navigation bar (`bottom-[74px]`).
+2. **Expand / Minimize Toggle (`Maximize2` / `Minimize2`)**:
+   - Added an expand button directly in the pop-up header so users can toggle between the compact default view (`h-[300px]`) and an expanded reading view (`h-[72vh]`) on mobile whenever they want.
+3. **Streamlined Mobile Spacing**:
+   - Compressed header padding, prompt suggestion pills, message bubbles, lot cards, and input bar for high information density without clutter.
+4. **Discreet Floating Launcher on Mobile**:
+   - Converted the mobile floating trigger from a wide banner to a sleek, compact floating circular button (`w-11 h-11`) at `bottom-[74px] right-3` that does not obstruct page contents or bottom navigation.
+
+---
