@@ -4,7 +4,7 @@ import { Bookmark, Clock, Gavel, User, Sparkles } from 'lucide-react';
 import Badge from '../common/Badge.jsx';
 import CountdownTimer from './CountdownTimer.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
-import { getImageUrl } from '../../utils/imageUrl.js';
+import { getImageUrl, handleImageError } from '../../utils/imageUrl.js';
 
 export const AuctionCard = ({ auction, onWatchToggle, isInitiallyWatched = false }) => {
   const { user } = useAuth();
@@ -58,14 +58,30 @@ export const AuctionCard = ({ auction, onWatchToggle, isInitiallyWatched = false
     <div className="group rounded border border-border bg-stone hover:bg-stone-hover transition-all duration-150 flex flex-col justify-between overflow-hidden relative">
       <Link to={`/auction/${auction._id}`} className="block relative">
         {/* Photo Container */}
-        <div className="relative aspect-[4/3] bg-paper overflow-hidden border-b border-border/80">
+        <div className="relative aspect-[4/3] bg-paper overflow-hidden border-b border-border/80 flex items-center justify-center">
+          {/* Ambient Blurred Backdrop for seamless portrait/odd aspect ratio filling */}
+          <img
+            src={photoUrl}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover blur-xl opacity-20 scale-125 pointer-events-none"
+            aria-hidden="true"
+            onError={(e) => {
+              e.target.style.display = 'none';
+            }}
+          />
+
+          {/* Sharp, Uncropped Product Image */}
           <img
             src={photoUrl}
             alt={auction.title}
-            className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-200"
+            className="relative z-10 w-full h-full object-contain p-2 group-hover:scale-[1.03] transition-transform duration-200"
             loading="lazy"
             onError={(e) => {
-              e.target.src = 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80';
+              handleImageError(
+                e,
+                auction.photos?.[0],
+                'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80'
+              );
             }}
           />
 
