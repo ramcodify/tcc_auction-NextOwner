@@ -110,22 +110,27 @@ export const AuctionDetailsPage = () => {
     if (!socket) return;
 
     const handleBidPlaced = (data) => {
-      if (data.auctionId === id) {
+      if (String(data.auctionId) === String(id)) {
         setAuction((prev) => {
           if (!prev) return prev;
           return {
             ...prev,
             currentPrice: data.currentPrice,
             bidCount: data.bidCount,
-            closesAt: data.closesAt
+            closesAt: data.closesAt,
+            leadingBidderId: data.leadingBidderId || data.newBid?.bidder?.id || prev.leadingBidderId
           };
         });
 
         if (data.newBid) {
-          setBidHistory((prev) => [data.newBid, ...prev]);
+          setBidHistory((prev) => {
+            const exists = prev.some((b) => String(b.id || b._id) === String(data.newBid.id));
+            if (exists) return prev;
+            return [data.newBid, ...prev];
+          });
         }
 
-        // Update prefilled bid
+        // Update prefilled bid amount to next valid increment
         setBidAmount(String(data.currentPrice + (auction?.minimumIncrement || 20)));
       }
     };

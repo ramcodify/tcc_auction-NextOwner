@@ -37,3 +37,4 @@ lerna-debug.log*
 .scratch
 tmp/
 coverage/
+node_modules

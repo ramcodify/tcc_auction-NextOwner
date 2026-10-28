@@ -104,21 +104,27 @@ export const placeBid = async ({ auctionId, bidderId, amount, isAuto = false }) 
   // 10. Broadcast via Socket.IO
   const io = getIO();
   if (io) {
-    io.to(`auction:${auction._id}`).emit('bid_placed', {
-      auctionId: auction._id,
+    const payload = {
+      auctionId: auction._id.toString(),
       currentPrice: auction.currentPrice,
       bidCount: auction.bidCount,
       closesAt: auction.closesAt,
+      leadingBidderId: bidderId.toString(),
       wasExtended,
       newBid: bidPayload
-    });
+    };
+
+    io.to(`auction:${auction._id}`).emit('bid_placed', payload);
+    io.emit('bid_placed', payload);
 
     if (wasExtended) {
-      io.to(`auction:${auction._id}`).emit('auction_extended', {
-        auctionId: auction._id,
+      const extPayload = {
+        auctionId: auction._id.toString(),
         closesAt: auction.closesAt,
         message: 'Bidding extended by 60 seconds due to a last-minute bid!'
-      });
+      };
+      io.to(`auction:${auction._id}`).emit('auction_extended', extPayload);
+      io.emit('auction_extended', extPayload);
     }
   }
 

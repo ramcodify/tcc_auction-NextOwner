@@ -12,7 +12,8 @@ import {
   Compass,
   Home,
   Activity,
-  Layers
+  Layers,
+  Bookmark
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import Button from '../common/Button.jsx';
@@ -230,7 +231,8 @@ export const Navbar = () => {
               onClick={() => setMobileDrawerOpen(false)}
               className="flex items-center gap-3 px-3 py-2 rounded text-sm text-ink hover:bg-stone font-medium"
             >
-              <Bookmark className="w-4 h-4 text-forest" /> Watchlist & Saved Alerts
+              <Bookmark className="w-4 h-4 text-forest" />
+              Watchlist & Saved Alerts
             </NavLink>
             <NavLink
               to="/seller/dashboard"
