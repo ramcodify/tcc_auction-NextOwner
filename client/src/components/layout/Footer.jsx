@@ -14,25 +14,6 @@ export const Footer = () => {
               A peer-to-peer campus marketplace designed for seamless student bidding, transparent handovers, and sustainable reuse of goods.
             </p>
           </div>
-
-          <div className="flex flex-wrap gap-4 text-xs text-olive">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-paper border border-border inline-block"></span>
-              Paper #F7F5F0
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-forest inline-block"></span>
-              Forest #315B43
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-stone border border-border inline-block"></span>
-              Stone #E8E5DB
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-ink inline-block"></span>
-              Ink #20231F
-            </span>
-          </div>
         </div>
 
         <div className="pt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-olive">
@@ -40,7 +21,7 @@ export const Footer = () => {
             &copy; {new Date().getFullYear()} NEXTowner. Phase 1 Foundation Active.
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-olive">Built with React + Vite & Node.js + Express + MongoDB</span>
+            <span className="text-olive">Built by ramvignesh</span>
           </div>
         </div>
       </div>

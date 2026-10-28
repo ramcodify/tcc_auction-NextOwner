@@ -124,7 +124,7 @@ export const placeBid = async ({ auctionId, bidderId, amount, isAuto = false }) 
 
   // 11. Dispatch notifications
   if (previousLeaderId && previousLeaderId.toString() !== bidderId.toString()) {
-    createNotification({
+    await createNotification({
       userId: previousLeaderId,
       title: 'Outbid Alert',
       message: `You were outbid on "${auction.title}". The leading bid is now ₹${numericAmount.toLocaleString('en-IN')}.`,
@@ -135,7 +135,7 @@ export const placeBid = async ({ auctionId, bidderId, amount, isAuto = false }) 
   }
 
   // Notify seller of new bid
-  createNotification({
+  await createNotification({
     userId: auction.sellerId,
     title: 'New Bid Received',
     message: `${bidder.name} placed a bid of ₹${numericAmount.toLocaleString('en-IN')} on "${auction.title}".`,

@@ -8,7 +8,7 @@ export const processAIChat = async ({ message, user = null }) => {
   const queryText = (message || '').toLowerCase().trim();
 
   // 1. Detect Intent: Automatic Bidding or Manual Bidding Action Request
-  const autoBidMatch = queryText.match(/(?:auto\s*bid|proxy\s*bid|bid\s*up\s*to|maximum\s*bid|bid\s*on)\s*(?:the\s*)?(.*?)\s*(?:up\s*to|for|at)?\s*(?:₹|rs\.?|inr)?\s*(\d+)/i);
+  const autoBidMatch = queryText.match(/(?:auto\s*bid|proxy\s*bid|bid\s*up\s*to|maximum\s*bid|bid\s*on|automatic\s*bidding(?:\s*on)?)\s*(?:the\s*)?(.*?)\s*(?:up\s*to|for|at)?\s*(?:₹|rs\.?|inr)?\s*(\d+)/i);
   if (autoBidMatch) {
     const rawTarget = autoBidMatch[1].trim();
     const targetAmount = parseInt(autoBidMatch[2], 10);
