@@ -19,6 +19,7 @@ import Badge from '../components/common/Badge.jsx';
 import Dialog from '../components/common/Dialog.jsx';
 import { LoadingState } from '../components/common/LoadingState.jsx';
 import AuctionCard from '../components/auction/AuctionCard.jsx';
+import SearchAutocomplete from '../components/common/SearchAutocomplete.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 
 export const ExplorePage = () => {
@@ -190,12 +191,21 @@ export const ExplorePage = () => {
         {/* Search & Top Action Bar */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pb-4 border-b border-border">
           <div className="flex-1 max-w-md">
-            <Input
+            <SearchAutocomplete
               placeholder="Search by keyword, author, model..."
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
-              icon={Search}
+              onChange={(val) => setQuery(val)}
+              onSubmit={(val) => {
+                setQuery(val);
+                const p = new URLSearchParams(searchParams);
+                if (val.trim()) {
+                  p.set('q', val.trim());
+                } else {
+                  p.delete('q');
+                }
+                p.set('page', '1');
+                setSearchParams(p);
+              }}
             />
           </div>
 

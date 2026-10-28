@@ -22,6 +22,7 @@ import Badge from '../components/common/Badge.jsx';
 import Card from '../components/common/Card.jsx';
 import { LoadingState } from '../components/common/LoadingState.jsx';
 import AuctionCard from '../components/auction/AuctionCard.jsx';
+import SearchAutocomplete from '../components/common/SearchAutocomplete.jsx';
 
 export const HomePage = () => {
   const [data, setData] = useState({
@@ -93,11 +94,17 @@ export const HomePage = () => {
           {/* Search Form + Sell Action */}
           <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row gap-2.5 max-w-2xl">
             <div className="flex-1">
-              <Input
+              <SearchAutocomplete
                 placeholder="Search cycles, fx-991EX, algorithm textbooks, monitors..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                icon={Search}
+                onChange={(val) => setSearchQuery(val)}
+                onSubmit={(val) => {
+                  if (val.trim()) {
+                    navigate(`/explore?q=${encodeURIComponent(val.trim())}`);
+                  } else {
+                    navigate('/explore');
+                  }
+                }}
               />
             </div>
             <div className="flex items-center gap-2">

@@ -31,7 +31,8 @@ export const getMarketplaceAuctions = async (req, res) => {
       const trimmed = q.trim();
       filter.$or = [
         { title: new RegExp(trimmed, 'i') },
-        { description: new RegExp(trimmed, 'i') }
+        { description: new RegExp(trimmed, 'i') },
+        { category: new RegExp(trimmed, 'i') }
       ];
     }
 
