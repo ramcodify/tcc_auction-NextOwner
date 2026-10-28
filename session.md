@@ -1390,3 +1390,27 @@ Optimized the **AI Assistant Pop-up Window** specifically for mobile screens:
    - Converted the mobile floating trigger from a wide banner to a sleek, compact floating circular button (`w-11 h-11`) at `bottom-[74px] right-3` that does not obstruct page contents or bottom navigation.
 
 ---
+
+## Turn 9: User
+
+in the search box the related istems dshould be shown while searching
+
+---
+
+## Response 9: AI Assistant (Antigravity)
+
+Implemented **Live Search Autocomplete with Related Items Preview**:
+1. **New Component ([`SearchAutocomplete.jsx`](file:///home/ram/Desktop/NEXTOWNER/tcc_auction-NextOwner/client/src/components/common/SearchAutocomplete.jsx))**:
+   - **Real-Time Debounced Querying**: Automatically queries live campus auctions as the user types (with a 200ms debounce).
+   - **Interactive Results Dropdown**: An anchored pop-up dropdown directly under the search box displaying matching active auctions.
+   - **Item Previews**: Shows item thumbnail image (via `getImageUrl`), title, category & condition badge, current leading price in Forest Green (`₹X`), and total bid count.
+   - **Instant Navigation**: Clicking any preview item jumps directly to its lot page ([`AuctionDetailsPage.jsx`](file:///home/ram/Desktop/NEXTOWNER/tcc_auction-NextOwner/client/src/pages/AuctionDetailsPage.jsx)).
+   - **Full Keyboard Navigation**: Supports Arrow Down/Up to highlight suggestions, Enter to navigate, and Escape or clicking outside to close.
+   - **Footer Action**: "View all results in Explore →" to view the full paginated marketplace results.
+2. **Integrated into Core Pages**:
+   - Replaced static search input in [`HomePage.jsx`](file:///home/ram/Desktop/NEXTOWNER/tcc_auction-NextOwner/client/src/pages/HomePage.jsx) with `SearchAutocomplete`.
+   - Replaced static search input in [`ExplorePage.jsx`](file:///home/ram/Desktop/NEXTOWNER/tcc_auction-NextOwner/client/src/pages/ExplorePage.jsx) with `SearchAutocomplete`.
+3. **Backend Search Enhancements ([`auctionController.js`](file:///home/ram/Desktop/NEXTOWNER/tcc_auction-NextOwner/server/src/controllers/auctionController.js))**:
+   - Extended keyword search to match `category` in addition to `title` and `description` for higher relevance.
+
+---
