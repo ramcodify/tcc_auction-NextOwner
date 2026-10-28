@@ -91,7 +91,7 @@ export const RegisterPage = () => {
             <Input
               label="Full Name *"
               name="name"
-              placeholder="e.g. Alex Morgan"
+              placeholder="e.g. Ram Vignesh G"
               value={formData.name}
               onChange={handleChange}
               icon={User}
