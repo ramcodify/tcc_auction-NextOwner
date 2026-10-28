@@ -4,6 +4,7 @@ import { Bookmark, Clock, Gavel, User, Sparkles } from 'lucide-react';
 import Badge from '../common/Badge.jsx';
 import CountdownTimer from './CountdownTimer.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { getImageUrl } from '../../utils/imageUrl.js';
 
 export const AuctionCard = ({ auction, onWatchToggle, isInitiallyWatched = false }) => {
   const { user } = useAuth();
@@ -40,7 +41,7 @@ export const AuctionCard = ({ auction, onWatchToggle, isInitiallyWatched = false
 
   const photoUrl =
     auction.photos && auction.photos.length > 0
-      ? auction.photos[0]
+      ? getImageUrl(auction.photos[0])
       : 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80';
 
   const conditionLabels = {

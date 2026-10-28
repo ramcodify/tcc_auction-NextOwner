@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { SocketProvider } from './context/SocketContext.jsx';
+import { AssistantProvider } from './context/AssistantContext.jsx';
 import ProtectedRoute from './components/common/ProtectedRoute.jsx';
 import AppShell from './components/layout/AppShell.jsx';
 
@@ -28,7 +29,8 @@ export const App = () => {
   return (
     <AuthProvider>
       <SocketProvider>
-        <BrowserRouter>
+        <AssistantProvider>
+          <BrowserRouter>
           <Routes>
             <Route path="/" element={<AppShell />}>
               {/* Public Marketplace Views */}
@@ -109,6 +111,7 @@ export const App = () => {
             </Route>
           </Routes>
         </BrowserRouter>
+        </AssistantProvider>
       </SocketProvider>
     </AuthProvider>
   );

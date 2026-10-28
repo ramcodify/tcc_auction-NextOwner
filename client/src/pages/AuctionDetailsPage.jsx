@@ -30,6 +30,7 @@ import CountdownTimer from '../components/auction/CountdownTimer.jsx';
 import { LoadingState } from '../components/common/LoadingState.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useSocket } from '../context/SocketContext.jsx';
+import { getImageUrl } from '../utils/imageUrl.js';
 
 export const AuctionDetailsPage = () => {
   const { id } = useParams();
@@ -391,7 +392,7 @@ export const AuctionDetailsPage = () => {
           <div className="space-y-3">
             <div className="relative aspect-[4/3] rounded border border-border bg-stone overflow-hidden">
               <img
-                src={auction.photos[activePhotoIdx] || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80'}
+                src={getImageUrl(auction.photos[activePhotoIdx])}
                 alt={auction.title}
                 className="w-full h-full object-cover"
                 onError={(e) => {
@@ -420,7 +421,7 @@ export const AuctionDetailsPage = () => {
                       activePhotoIdx === idx ? 'border-forest ring-2 ring-forest/30' : 'border-border opacity-70 hover:opacity-100'
                     }`}
                   >
-                    <img src={photo} alt="" className="w-full h-full object-cover" />
+                    <img src={getImageUrl(photo)} alt="" className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>

@@ -17,10 +17,12 @@ import {
 import { useAuth } from '../../context/AuthContext.jsx';
 import Button from '../common/Button.jsx';
 import Badge from '../common/Badge.jsx';
+import { NotificationDropdown } from '../notification/NotificationPopup.jsx';
 
 export const Navbar = () => {
   const { user, logout } = useAuth();
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -33,8 +35,7 @@ export const Navbar = () => {
     { label: 'Home', path: '/', end: true },
     { label: 'Explore', path: '/explore' },
     { label: 'Sell an item', path: '/sell' },
-    { label: 'My activity', path: '/activity' },
-    { label: 'AI assistant', path: '/assistant' }
+    { label: 'My activity', path: '/activity' }
   ];
 
   const getInitials = (name) => {
@@ -87,19 +88,29 @@ export const Navbar = () => {
 
           {/* Right Header Controls */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Notifications Button */}
-            <NavLink
-              to="/notifications"
-              className={({ isActive }) => `
-                relative p-2 rounded text-ink hover:bg-stone transition-colors
-                ${isActive ? 'bg-stone text-forest' : 'text-olive hover:text-ink'}
-              `}
-              title="Notifications"
-            >
-              <Bell className="w-4 h-4" />
-              {/* Subtle unread badge dot */}
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-forest ring-2 ring-paper" />
-            </NavLink>
+            {/* Notifications Button with On-Screen Pop-up Window */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setNotificationDropdownOpen(!notificationDropdownOpen)}
+                className={`
+                  relative p-2 rounded transition-colors
+                  ${notificationDropdownOpen ? 'bg-stone text-forest' : 'text-olive hover:text-ink hover:bg-stone'}
+                `}
+                title="Notifications"
+                aria-label="Toggle notifications pop-up"
+              >
+                <Bell className="w-4 h-4" />
+                {/* Subtle unread badge dot */}
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-forest ring-2 ring-paper" />
+              </button>
+
+              {/* On-Screen Notification Pop-up Window */}
+              <NotificationDropdown
+                isOpen={notificationDropdownOpen}
+                onClose={() => setNotificationDropdownOpen(false)}
+              />
+            </div>
 
             {/* Desktop Auth State */}
             <div className="hidden md:flex items-center gap-2">
@@ -206,13 +217,6 @@ export const Navbar = () => {
               className="flex items-center gap-3 px-3 py-2 rounded text-sm text-ink hover:bg-stone font-medium"
             >
               <Activity className="w-4 h-4 text-forest" /> My activity
-            </NavLink>
-            <NavLink
-              to="/assistant"
-              onClick={() => setMobileDrawerOpen(false)}
-              className="flex items-center gap-3 px-3 py-2 rounded text-sm text-ink hover:bg-stone font-medium"
-            >
-              <Bot className="w-4 h-4 text-forest" /> AI Assistant
             </NavLink>
             <NavLink
               to="/notifications"
