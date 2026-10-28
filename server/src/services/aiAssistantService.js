@@ -8,20 +8,27 @@ import User from '../models/User.js';
  *  1. Budget constraints (never suggests or bids more than the student's budget)
  *  2. Explicit user consent (never places bids without student approval)
  *  3. Student privacy (never exposes private limits, contact info, or passwords)
- *  4. Intelligent query understanding (handles FAQs, rules, greetings, and live item search)
+ *  4. Conversational context (understands follow-up actions like "bid on 970", "bid on clc", "bid on it")
  */
-export const processAIChat = async ({ message, user = null }) => {
+export const processAIChat = async ({
+  message,
+  user = null,
+  contextAuctionId = null,
+  history = []
+}) => {
   const rawMessage = (message || '').trim();
   const queryText = rawMessage.toLowerCase();
   const studentFirstName = user?.name ? user.name.split(' ')[0] : 'there';
 
-  // Helper to extract budget numbers (e.g., "under 2000", "under 2k", "₹2,500", "below 1500")
+  // Helper to extract budget numbers (e.g., "under 2000", "under 2k", "₹2,500", "below 1500", "bid on 970", "bid 970")
   const parseBudget = (text) => {
-    const kMatch = text.match(/(?:under|below|less than|max|up to|within|budget of|for|at)?\s*(?:₹|rs\.?|inr)?\s*(\d+(?:\.\d+)?)\s*k\b/i);
+    // 1. Shorthand like "2k", "1.5k"
+    const kMatch = text.match(/(?:under|below|less than|max|up to|within|budget of|for|at|on|to)?\s*(?:₹|rs\.?|inr)?\s*(\d+(?:\.\d+)?)\s*k\b/i);
     if (kMatch) {
       return Math.round(parseFloat(kMatch[1]) * 1000);
     }
-    const numMatch = text.match(/(?:under|below|less than|max|up to|within|budget of|for|at)?\s*(?:₹|rs\.?|inr)?\s*([\d,]+)/i);
+    // 2. Direct numbers: "bid on 970", "under 2000", "970"
+    const numMatch = text.match(/(?:under|below|less than|max|up to|within|budget of|for|at|on|to|bid|limit|ceiling)?\s*(?:₹|rs\.?|inr)?\s*([\d,]{2,8})/i);
     if (numMatch) {
       const val = parseInt(numMatch[1].replace(/,/g, ''), 10);
       if (!isNaN(val) && val > 0 && val < 500000) {
@@ -31,8 +38,8 @@ export const processAIChat = async ({ message, user = null }) => {
     return null;
   };
 
-  // Check if query contains search keywords or budget
-  const hasItemKeywords = /(?:cycle|bike|bicycle|calc|calculator|casio|book|textbook|notes|clrs|chair|table|desk|furniture|laptop|headphone|earphone|monitor|charger|electronics?)/i.test(queryText);
+  // Check if query contains item keywords or search intent
+  const hasItemKeywords = /(?:cycle|cyc|bike|bicycle|calc|clc|calculator|calcy|casio|book|bk|textbook|notes|clrs|chair|table|desk|furniture|laptop|headphone|earphone|monitor|charger|electronics?)/i.test(queryText);
   const hasSearchIntent = /(?:find|search|show|looking\s+for|want\s+to\s+buy|need\s+a|any\s+(?:available|items?)|what\s+(?:cycles?|books?|items?)|browse|cheapest|closing\s+soon)/i.test(queryText);
 
   // =========================================================================
@@ -45,7 +52,7 @@ export const processAIChat = async ({ message, user = null }) => {
   }
 
   // =========================================================================
-  // 2. GREETINGS & CAPABILITIES (Only if not asking to find an item)
+  // 2. GREETINGS & CAPABILITIES (Only if not asking to find or bid on an item)
   // =========================================================================
   const isGreetingOnly =
     /^(hi|hello|hey|good\s*(?:morning|afternoon|evening)|yo|sup|hola|namaste|start)\b/i.test(queryText) ||
@@ -59,7 +66,7 @@ export const processAIChat = async ({ message, user = null }) => {
       .limit(3);
 
     return {
-      reply: `Hello ${studentFirstName}! 👋 Welcome to **NEXTowner**, your campus peer-to-peer auction marketplace.\n\nHere is what I can do for you:\n• **Find Items By Budget:** Ask *"Find me a cycle under ₹2,000"* or *"Calculators under 800"*\n• **Assist With Bidding:** Say *"I want to bid on the cycle"* to prepare a safe proposal\n• **Explain Rules:** Ask *"How does bidding work?"* or *"What is the 30-second anti-sniping rule?"*\n• **Selling & Handover:** Ask *"How do I sell an item?"* or *"How does handover work?"*\n\nHere are active campus listings closing soon:`,
+      reply: `Hello ${studentFirstName}! 👋 Welcome to **NEXTowner**, your campus peer-to-peer auction marketplace.\n\nHere is what I can do for you:\n• **Find Items By Budget:** Ask *"Find me a cycle under ₹2,000"* or *"Calculators under 800"*\n• **Assist With Bidding:** Say *"I want to bid on the calculator"* to prepare a safe proposal\n• **Explain Rules:** Ask *"How does bidding work?"* or *"What is the 30-second anti-sniping rule?"*\n• **Selling & Handover:** Ask *"How do I sell an item?"* or *"How does handover work?"*\n\nHere are active campus listings closing soon:`,
       auctions: featuredAuctions.map(formatAuctionResult)
     };
   }
@@ -75,7 +82,7 @@ export const processAIChat = async ({ message, user = null }) => {
     };
   }
 
-  // B. Anti-sniping / 30-Second Extension (checked before general bidding rules)
+  // B. Anti-sniping / 30-Second Extension
   if (/(?:anti[- ]?snip(?:ing)?|30\s*sec(?:ond)?(?:\s*rule)?|timer\s+exten(?:d|sion)|why\s+did\s+(?:the\s+)?(?:auction|time)\s+extend|sniper\s+protection)/i.test(queryText)) {
     return {
       reply: `⚡ **The 30-Second Anti-Sniping Rule:**\n\nOn NEXTowner, if any student places a bid within the **final 30 seconds** of an auction, the deadline is automatically extended by **60 seconds**.\n\n**Why this exists:**\n• **Stops Bot Sniping:** Prevents automated scripts from submitting bids at 00:01.\n• **Fair Play:** Gives genuine student bidders a fair chance to place a counter-offer.\n• **True Value:** Ensures student sellers receive fair campus market value for their items.`
@@ -85,7 +92,7 @@ export const processAIChat = async ({ message, user = null }) => {
   // C. How does bidding work?
   if (
     /(?:how\s+(?:does\s+)?(?:bidding|to\s+bid|a\s+bid)\s+work|explain\s+bidding|bidding\s+rules|how\s+do\s+bids\s+work|how\s+to\s+place\s+a\s+bid|how\s+do\s+i\s+bid)/i.test(queryText) &&
-    !/(?:bid\s+(?:on|for|\d+)|place\s+a\s+bid\s+on|i\s+want\s+to\s+bid)/i.test(queryText)
+    !/(?:bid\s+(?:on|for|\d+)|place\s+a\s+bid\s+on|i\s+want\s+to\s+bid|im\s+bid)/i.test(queryText)
   ) {
     return {
       reply: `🔨 **How Bidding Works on NEXTowner:**\n\n1. **Starting Price & Increment:** Every listing starts at a reserve price. Each new bid must meet the lot's minimum increment (e.g., +₹20, +₹30, or +₹50).\n2. **Real-time Live Sync:** Bids update instantly across all student screens without refreshing via WebSocket.\n3. **Anti-Sniping Protection:** If a bid is placed in the final 30 seconds, the timer automatically extends by 60 seconds.\n4. **Proxy Auto-Bidding:** You can set a secret budget ceiling. The system bids minimally on your behalf to maintain the lead without exceeding your limit.\n5. **Auction Closure:** When the timer ends, the seller reviews the winning price before coordinating the in-person campus handover.`
@@ -176,80 +183,124 @@ export const processAIChat = async ({ message, user = null }) => {
     };
   }
 
-
   // =========================================================================
   // 4. ACTION INTENT: PREPARING A BID PROPOSAL (Explicit Consent Required)
   // =========================================================================
   const isBidAction =
-    /(?:i\s+want\s+to\s+bid|place\s+(?:a\s+)?bid|bid\s+(?:on|for|up\s*to|\d+)|suggest\s+a\s+bid|help\s+me\s+bid|auto[- ]?bid\s+on)/i.test(queryText) &&
+    /(?:i\s*['’]?m\s+bid|i\s+am\s+bid|bidding\s+on|i\s+want\s+to\s+bid|place\s+(?:a\s+)?bid|bid\s+(?:on|for|up\s*to|\d+)|suggest\s+a\s+bid|help\s+me\s+bid|auto[- ]?bid)/i.test(queryText) &&
     !/(?:how\s+(?:does|to)|explain|what\s+is|can\s+i\s+cancel)/i.test(queryText);
 
   if (isBidAction) {
-    // Extract target item keyword
+    // Extract target item keyword from user input
     let targetKeyword = '';
-    if (queryText.includes('cycle') || queryText.includes('bike') || queryText.includes('bicycle')) {
+    if (queryText.includes('cycle') || queryText.includes('bike') || queryText.includes('bicycle') || queryText.includes('cyc')) {
       targetKeyword = 'cycle';
-    } else if (queryText.includes('calc') || queryText.includes('calculator') || queryText.includes('casio') || queryText.includes('fx')) {
-      targetKeyword = 'calculator';
+    } else if (queryText.includes('calc') || queryText.includes('clc') || queryText.includes('calculator') || queryText.includes('calcy') || queryText.includes('casio') || queryText.includes('fx')) {
+      targetKeyword = 'calc';
     } else if (queryText.includes('book') || queryText.includes('textbook') || queryText.includes('algo') || queryText.includes('notes') || queryText.includes('clrs')) {
       targetKeyword = 'book';
     } else if (queryText.includes('chair') || queryText.includes('furniture') || queryText.includes('table') || queryText.includes('desk')) {
       targetKeyword = 'chair';
-    } else if (queryText.includes('headphone') || queryText.includes('monitor') || queryText.includes('electronic') || queryText.includes('laptop')) {
+    } else if (queryText.includes('headphone') || queryText.includes('earphone') || queryText.includes('monitor') || queryText.includes('electronic') || queryText.includes('laptop')) {
       targetKeyword = 'electronic';
     }
 
-    // Extract student's specified budget / limit (e.g. "under 2000", "up to ₹1,800", "for 1600", "2k")
+    // Extract student's specified budget / limit (e.g. "under 2000", "bid on 970", "for 1600", "2k")
     const specifiedBudget = parseBudget(queryText);
 
-    // Search for matching live auction
-    const queryFilter = { status: 'live' };
+    let matchedAuction = null;
+
+    // A. If target keyword was explicitly given (e.g. "clc", "calc", "cycle", "book"):
     if (targetKeyword) {
-      queryFilter.$or = [
-        { title: new RegExp(targetKeyword, 'i') },
-        { category: new RegExp(targetKeyword, 'i') },
-        { description: new RegExp(targetKeyword, 'i') }
-      ];
+      // First check if current contextAuctionId matches that keyword
+      if (contextAuctionId) {
+        const candidate = await Auction.findOne({ _id: contextAuctionId, status: 'live' });
+        if (
+          candidate &&
+          (candidate.category.toLowerCase().includes(targetKeyword) ||
+           candidate.title.toLowerCase().includes(targetKeyword) ||
+           (targetKeyword === 'calc' && (candidate.category === 'calculator' || candidate.title.toLowerCase().includes('calc'))))
+        ) {
+          matchedAuction = candidate;
+        }
+      }
+
+      // If not in current context, query database
+      if (!matchedAuction) {
+        const queryFilter = {
+          status: 'live',
+          $or: [
+            { title: new RegExp(targetKeyword, 'i') },
+            { category: new RegExp(targetKeyword, 'i') },
+            { description: new RegExp(targetKeyword, 'i') }
+          ]
+        };
+        if (targetKeyword === 'calc') {
+          queryFilter.$or.push({ category: 'calculator' }, { title: /calc|clc|calculator/i });
+        }
+        matchedAuction = await Auction.findOne(queryFilter).sort({ currentPrice: 1, closesAt: 1 });
+      }
+    } else {
+      // B. User did NOT specify a keyword (e.g., "bid on 970", "bid 970", "bid on it", "bid on this")
+      // Rely on conversational context!
+      if (contextAuctionId) {
+        matchedAuction = await Auction.findOne({ _id: contextAuctionId, status: 'live' });
+      }
+
+      // If still not resolved, check conversation history backwards
+      if (!matchedAuction && Array.isArray(history) && history.length > 0) {
+        for (let i = history.length - 1; i >= 0; i--) {
+          const h = history[i];
+          const recentId = h.auctionIds?.[0] || h.auctions?.[0]?.id || null;
+          if (recentId) {
+            matchedAuction = await Auction.findOne({ _id: recentId, status: 'live' });
+            if (matchedAuction) break;
+          }
+        }
+      }
     }
 
-    const matchedAuction = await Auction.findOne(queryFilter).sort({ currentPrice: 1, closesAt: 1 });
-
-    if (matchedAuction) {
-      // Calculate next valid minimum bid
-      const nextMinBid =
-        matchedAuction.bidCount === 0
-          ? matchedAuction.startingPrice
-          : matchedAuction.currentPrice + matchedAuction.minimumIncrement;
-
-      let authorizedLimit = specifiedBudget || nextMinBid;
-
-      // STRICT RULE 1: Never bid more than the student's budget
-      if (specifiedBudget && nextMinBid > specifiedBudget) {
-        return {
-          reply: `⚠️ **Budget Limit Exceeded:**\nI found **"${matchedAuction.title}"**, but the current price is **₹${matchedAuction.currentPrice.toLocaleString('en-IN')}** and the next valid bid is **₹${nextMinBid.toLocaleString('en-IN')}**.\n\nSince this exceeds your stated budget of **₹${specifiedBudget.toLocaleString('en-IN')}**, I will **not** suggest or place any bid. NEXTowner rules strictly prevent bidding beyond your authorized budget.`,
-          auctions: [formatAuctionResult(matchedAuction)]
-        };
-      }
-
-      if (authorizedLimit < nextMinBid) {
-        authorizedLimit = nextMinBid;
-      }
-
-      // STRICT RULE 2: Always ask for explicit permission before placing any bid
+    // C. Safety check: If NO item can be matched from input or context, DO NOT arbitrarily bid on a random item!
+    if (!matchedAuction) {
       return {
-        reply: `Here is my suggested bid proposal for **"${matchedAuction.title}"**:\n• **Current Price:** ₹${matchedAuction.currentPrice.toLocaleString('en-IN')}\n• **Suggested Next Bid:** ₹${nextMinBid.toLocaleString('en-IN')}\n• **Authorized Budget Ceiling:** ₹${authorizedLimit.toLocaleString('en-IN')}\n\n🛡️ **Student Permission Required:**\nAs per NEXTowner policy, I will **never** bid without your explicit consent or exceed your budget. Review the proposal below and click **Confirm Auto-Bid** to authorize this action.`,
-        actionProposal: {
-          type: 'CONFIRM_AUTOBID',
-          auctionId: matchedAuction._id,
-          title: matchedAuction.title,
-          maxAmount: authorizedLimit,
-          suggestedBid: nextMinBid,
-          currentPrice: matchedAuction.currentPrice,
-          closesAt: matchedAuction.closesAt
-        },
+        reply: `Which campus item would you like to bid${specifiedBudget ? ` **₹${specifiedBudget.toLocaleString('en-IN')}**` : ''} on? 🤔\n\nPlease specify the item name or search for it first. For example:\n• *"Bid ${specifiedBudget ? `₹${specifiedBudget.toLocaleString('en-IN')}` : '₹970'} on the calculator"*\n• *"Bid on the cycle"*\n• Or ask *"Find calculators"* to see active listings.`
+      };
+    }
+
+    // Calculate next valid minimum bid
+    const nextMinBid =
+      matchedAuction.bidCount === 0
+        ? matchedAuction.startingPrice
+        : matchedAuction.currentPrice + matchedAuction.minimumIncrement;
+
+    let authorizedLimit = specifiedBudget || nextMinBid;
+
+    // STRICT RULE 1: Never bid more than the student's budget
+    if (specifiedBudget && nextMinBid > specifiedBudget) {
+      return {
+        reply: `⚠️ **Budget Limit Exceeded:**\nI found **"${matchedAuction.title}"**, but the current price is **₹${matchedAuction.currentPrice.toLocaleString('en-IN')}** and the next valid bid is **₹${nextMinBid.toLocaleString('en-IN')}**.\n\nSince this exceeds your stated budget of **₹${specifiedBudget.toLocaleString('en-IN')}**, I will **not** suggest or place any bid. NEXTowner rules strictly prevent bidding beyond your authorized budget.`,
         auctions: [formatAuctionResult(matchedAuction)]
       };
     }
+
+    if (authorizedLimit < nextMinBid) {
+      authorizedLimit = nextMinBid;
+    }
+
+    // STRICT RULE 2: Always ask for explicit permission before placing any bid
+    return {
+      reply: `Here is my suggested bid proposal for **"${matchedAuction.title}"**:\n• **Current Price:** ₹${matchedAuction.currentPrice.toLocaleString('en-IN')}\n• **Suggested Next Bid:** ₹${nextMinBid.toLocaleString('en-IN')}\n• **Authorized Budget Ceiling:** ₹${authorizedLimit.toLocaleString('en-IN')}\n\n🛡️ **Student Permission Required:**\nAs per NEXTowner policy, I will **never** bid without your explicit consent or exceed your budget. Review the proposal below and click **Confirm Auto-Bid** to authorize this action.`,
+      actionProposal: {
+        type: 'CONFIRM_AUTOBID',
+        auctionId: matchedAuction._id,
+        title: matchedAuction.title,
+        maxAmount: authorizedLimit,
+        suggestedBid: nextMinBid,
+        currentPrice: matchedAuction.currentPrice,
+        closesAt: matchedAuction.closesAt
+      },
+      auctions: [formatAuctionResult(matchedAuction)]
+    };
   }
 
   // =========================================================================
@@ -260,13 +311,13 @@ export const processAIChat = async ({ message, user = null }) => {
 
   // Category detection
   let detectedCategory = null;
-  if (queryText.includes('cycle') || queryText.includes('bicycle') || queryText.includes('bike')) {
+  if (queryText.includes('cycle') || queryText.includes('bicycle') || queryText.includes('bike') || queryText.includes('cyc')) {
     filter.category = 'cycle';
     detectedCategory = 'cycle';
-  } else if (queryText.includes('calc') || queryText.includes('calculator') || queryText.includes('casio') || queryText.includes('fx')) {
+  } else if (queryText.includes('calc') || queryText.includes('clc') || queryText.includes('calculator') || queryText.includes('calcy') || queryText.includes('casio') || queryText.includes('fx')) {
     filter.category = 'calculator';
     detectedCategory = 'calculator';
-  } else if (queryText.includes('book') || queryText.includes('textbook') || queryText.includes('notes') || queryText.includes('study') || queryText.includes('clrs')) {
+  } else if (queryText.includes('book') || queryText.includes('bk') || queryText.includes('textbook') || queryText.includes('notes') || queryText.includes('study') || queryText.includes('clrs')) {
     filter.category = 'books';
     detectedCategory = 'books';
   } else if (queryText.includes('electronic') || queryText.includes('laptop') || queryText.includes('phone') || queryText.includes('headphone') || queryText.includes('earphone') || queryText.includes('charger') || queryText.includes('monitor')) {

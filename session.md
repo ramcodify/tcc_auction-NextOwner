@@ -1565,5 +1565,38 @@ When students interacted with the floating AI Assistant popup, queries like `"hi
   - `"Find me a cycle under ₹2,000"` -> Returns `Hero Sprint Pro Single-Speed Campus Cycle` (₹1,400).
   - `"i want to bid on the cycle under 2000"` -> Generates `CONFIRM_AUTOBID` proposal card with explicit student authorization requirement.
   - `"i want to bid on the chair for 1000"` -> Rejects proposal safely because next valid bid (₹1,350) exceeds student's stated budget.
-
 ---
+
+## Turn 16 - Context-Aware Auto-Bidding & Abbreviation Disambiguation
+
+### Context & Problem
+When a student was searching for a calculator (e.g. `calc` current price ₹940) and sent a follow-up command such as `"bid on 970"` or `"im bid on clc"`, the AI Assistant incorrectly generated an auto-bid proposal for `"Introduction to Algorithms (CLRS 3rd Edition) + Notes"` rather than the calculator:
+1. **Empty Target Keyword**: In `"bid on 970"`, no item category keyword was mentioned in the user's immediate message.
+2. **Missing Conversational Context**: The frontend did not forward `contextAuctionId` or recent conversation history with `/api/ai/chat`, leaving the backend with no memory of what lot was just recommended.
+3. **Flawed Database Fallback**: When `targetKeyword` was empty, the backend fell back to `Auction.findOne({ status: 'live' }).sort({ currentPrice: 1 })`, which indiscriminately picked the cheapest listing in the entire database (the CLRS textbook at ₹750).
+4. **Unrecognized Abbreviation**: Abbreviations like `"clc"` or colloquial phrases like `"im bid on"` were not captured by the bidding action regex.
+
+### Architectural Solution & Implementation
+1. **Conversational Memory in Client ([`AssistantContext.jsx`](file:///home/ram/Desktop/NEXTOWNER/tcc_auction-NextOwner/client/src/context/AssistantContext.jsx))**:
+   - Updated `sendMessage` to inspect message history and extract `contextAuctionId` from the most recently displayed auction result or proposal.
+   - Also checks `window.location.pathname` to detect if the student is currently browsing `/auction/:id`.
+   - Forwards `{ message, contextAuctionId, history }` to `/api/ai/chat`.
+2. **Context-Aware Bidding Engine ([`aiAssistantService.js`](file:///home/ram/Desktop/NEXTOWNER/tcc_auction-NextOwner/server/src/services/aiAssistantService.js) & [`aiController.js`](file:///home/ram/Desktop/NEXTOWNER/tcc_auction-NextOwner/server/src/controllers/aiController.js))**:
+   - **Abbreviation & Keyword Expansion**: Added support for `"clc"`, `"calc"`, `"calcy"`, `"casio"`, `"fx"`, `"cyc"`, `"bk"`, and conversational triggers like `"im bid on"`.
+   - **Context Resolution**: When a user gives a bid amount (e.g. `"bid on 970"`, `"bid 970"`, `"bid on it"`):
+     - If an item was recently discussed or in context, it targets THAT specific auction (e.g. `calc`).
+     - If the user specifies an item explicitly (e.g. `"im bid on clc"` or `"bid on clc for 970"`), it resolves to the matching auction.
+   - **Safe Fallback**: If neither a keyword nor any conversational context exists, it gracefully prompts the student: *"Which campus item would you like to bid on? (e.g., 'Bid ₹970 on the calculator')"*, guaranteeing it will never bid on an unintended lot.
+3. **Daemon Refresh**:
+   - Restarted backend server daemon (`task-1430`).
+   - Recompiled client bundle (`npm run build`).
+
+### Automated Verification
+- **Test 1**: User sends `"bid on 970"` with `calc` in context:
+  - Output: Correctly suggested proposal for **"calc"** with Current Price: ₹940, Next Bid: ₹970, Authorized Ceiling: ₹970.
+- **Test 2**: User sends `"im bid on clc"`:
+  - Output: Correctly matches `calc` and returns the `CONFIRM_AUTOBID` proposal card.
+- **Test 3**: User sends `"bid on clc for 970"`:
+  - Output: Proposes auto-bid for `calc` capped at ₹970.
+- **Test 4**: User sends `"bid on 970"` with zero context:
+  - Output: Gracefully asks which item the student wishes to bid on.

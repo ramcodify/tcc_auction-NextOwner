@@ -49,12 +49,42 @@ export const AssistantProvider = ({ children }) => {
     setInputText('');
     setLoading(true);
 
+    // Extract the most recently referenced auction from message history or proposal
+    let contextAuctionId = null;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i];
+      if (msg.actionProposal?.auctionId) {
+        contextAuctionId = msg.actionProposal.auctionId;
+        break;
+      }
+      if (msg.auctions && msg.auctions.length > 0) {
+        contextAuctionId = msg.auctions[0].id;
+        break;
+      }
+    }
+
+    // Check if user is currently viewing an auction page
+    const pageAuctionId =
+      typeof window !== 'undefined' && window.location.pathname.startsWith('/auction/')
+        ? window.location.pathname.split('/')[2]
+        : null;
+
     try {
       const res = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ message: text })
+        body: JSON.stringify({
+          message: text,
+          contextAuctionId: contextAuctionId || pageAuctionId || null,
+          history: messages.slice(-6).map((m) => ({
+            sender: m.sender,
+            text: m.text,
+            auctionIds:
+              m.auctions?.map((a) => a.id) ||
+              (m.actionProposal?.auctionId ? [m.actionProposal.auctionId] : [])
+          }))
+        })
       });
 
       const data = await res.json();
