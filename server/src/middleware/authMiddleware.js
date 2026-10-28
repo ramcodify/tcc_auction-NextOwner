@@ -87,3 +87,38 @@ export const sendTokenResponse = (user, statusCode, res, message = null, extraDa
     ...extraData
   });
 };
+
+/**
+ * Optional authentication: attaches req.user if valid token exists,
+ * but does not reject request if unauthenticated.
+ */
+export const optionalAuth = async (req, res, next) => {
+  let token = null;
+
+  if (req.cookies && req.cookies.token) {
+    token = req.cookies.token;
+  } else if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer')
+  ) {
+    token = req.headers.authorization.split(' ')[1];
+  }
+
+  if (!token) {
+    return next();
+  }
+
+  try {
+    const secret = process.env.JWT_SECRET || 'nextowner_default_jwt_secret_dev';
+    const decoded = jwt.verify(token, secret);
+    const user = await User.findById(decoded.id);
+    if (user) {
+      req.user = user;
+    }
+  } catch (error) {
+    // Silently continue for optional auth
+  }
+
+  next();
+};
+

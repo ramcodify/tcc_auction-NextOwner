@@ -1514,3 +1514,54 @@ the bid value is not updating in the realtime from one user to the other it upat
 - **Production Bundle**: `npm run build` compiled 1,652 modules in 2.49s with 0 errors.
 
 ---
+
+## Turn 14 - Intelligent AI Assistant Query Resolution & Campus Market Intelligence
+
+### Context & Problem
+When students interacted with the floating AI Assistant popup, queries like `"hi"`, `"how does bidding work"`, `"what is NEXTowner"`, `"can I cancel a bid"`, or `"what is anti-sniping"` produced incorrect or unhelpful behavior:
+1. Previously, the assistant matched rigid regexes that mistakenly treated any mention of the word `"bid"` as an action intent to place a bid on a random database item.
+2. If no keywords matched, it returned an unhelpful fallback: `"I couldn't find any active campus listings strictly matching..."` rather than answering platform questions.
+3. Natural budget queries (e.g., `"cycles under 1k"` or `"find me a cycle under ₹2,000"`) lacked intelligent price thresholds and conversational fallbacks explaining when available items were slightly above budget.
+4. Messages in the UI rendered raw markdown characters (e.g., `**bold**`, `*italics*`) rather than formatted typography.
+
+### Architectural Solution & Implementation
+1. **Comprehensive Campus Intelligence Engine ([`aiAssistantService.js`](file:///home/ram/Desktop/NEXTOWNER/tcc_auction-NextOwner/server/src/services/aiAssistantService.js))**:
+   - **Greetings & Onboarding**: Welcomes students warmly by first name (via authenticated token), lists key capabilities with example prompts, and surfaces 3 active campus lots closing soon.
+   - **Platform FAQs & Rules**:
+     - *What is NEXTowner*: Single unified student account, verified student peer-to-peer exchange.
+     - *How Bidding Works*: Starting prices, minimum increments, real-time live sync, anti-sniping, seller review.
+     - *30-Second Anti-Sniping Rule*: Explains automatic 60-second extensions preventing bot sniping.
+     - *Selling Flow*: 2-minute listing process, photo uploads, reserve pricing, approving winners.
+     - *Handover & In-Person Settlement*: Physical campus meetup (Library foyer, Student Center), inspection before payment, direct UPI/Cash settlement with zero online escrow risks.
+     - *Bid Retraction Policy*: Strict binding commitment policy.
+     - *Proxy Auto-Bidding*: Secret ceiling protection, minimal increments, privacy preservation.
+     - *Disputes & No-Shows*: Zero upfront payment protection, report/cancel handover workflows.
+     - *Listing Management*: Edit/cancel rules before and after bids are placed.
+     - *Student Privacy & Safety*: Hidden proxy limits, verified peer identities.
+   - **Action Disambiguation vs Informational Queries**:
+     - Differentiates queries asking *about* bidding from direct action intents (*"I want to bid on the cycle"*).
+     - Strictly enforces **Rule 1** (never bid more than the student's authorized budget ceiling) and **Rule 2** (explicit `CONFIRM_AUTOBID` consent card required before placing any bid).
+   - **Natural Budget & Fuzzy Search**:
+     - Handles numeric shorthand (e.g. `2k` -> ₹2,000, `₹2,500`, `under 1000`).
+     - Detects categories (`cycle`, `calculator`, `books`, `electronics`, `furniture`), conditions, and sorting priorities.
+     - When budget is slightly below available items (e.g. `cycle under 1000` when cycles start at ₹1,400), intelligently informs the student that items start at ₹1,400 and presents the available options.
+2. **Optional Authentication Middleware ([`authMiddleware.js`](file:///home/ram/Desktop/NEXTOWNER/tcc_auction-NextOwner/server/src/middleware/authMiddleware.js) & [`aiRoutes.js`](file:///home/ram/Desktop/NEXTOWNER/tcc_auction-NextOwner/server/src/routes/aiRoutes.js))**:
+   - Implemented `optionalAuth` middleware that attaches `req.user` if a valid cookie or bearer token exists, allowing the assistant to personalize responses without blocking guest students.
+3. **Typography & UI Enhancements ([`AIAssistantPopup.jsx`](file:///home/ram/Desktop/NEXTOWNER/tcc_auction-NextOwner/client/src/components/assistant/AIAssistantPopup.jsx))**:
+   - Implemented `FormattedText` component to render inline `**bold**`, `*italics*`, and structured bullet lists cleanly.
+   - Updated quick prompt pills with practical one-click queries: `'Cycles under ₹2,000'`, `'How does bidding work?'`, `'What is anti-sniping?'`, `'How does handover work?'`, `'Calculators'`, `'Books under 800'`, and `'How do I sell?'`.
+4. **Backend Daemon Refresh**:
+   - Restarted server daemon (`task-1256`) to ensure updated services and routes are active.
+   - Successfully compiled production client bundle with `npm run build` (1,652 modules, 0 errors).
+
+### Verification
+- Verified responses across all test categories via live HTTP requests to `/api/ai/chat`:
+  - `"hi"` -> Personalized greeting + 3 closing-soon lots.
+  - `"how does bidding work"` -> Detailed 5-step bidding breakdown.
+  - `"what is the 30 second rule"` -> Anti-sniping explanation.
+  - `"how does handover work"` -> In-person campus exchange & direct UPI/cash policy.
+  - `"can I cancel a bid"` -> Binding commitment rule.
+  - `"what is proxy bidding"` -> Secret ceiling mechanics.
+  - `"Find me a cycle under ₹2,000"` -> Returns `Hero Sprint Pro Single-Speed Campus Cycle` (₹1,400).
+  - `"i want to bid on the cycle under 2000"` -> Generates `CONFIRM_AUTOBID` proposal card with explicit student authorization requirement.
+  - `"i want to bid on the chair for 1000"` -> Rejects proposal safely because next valid bid (₹1,350) exceeds student's stated budget.

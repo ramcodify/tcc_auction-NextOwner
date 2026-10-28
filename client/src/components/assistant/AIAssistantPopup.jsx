@@ -17,6 +17,69 @@ import { getImageUrl, handleImageError } from '../../utils/imageUrl.js';
 import Button from '../common/Button.jsx';
 import Badge from '../common/Badge.jsx';
 
+const FormattedText = ({ text, isUser }) => {
+  if (!text) return null;
+  if (isUser) {
+    return <p className="whitespace-pre-line text-[11px] sm:text-xs">{text}</p>;
+  }
+
+  const lines = text.split('\n');
+  return (
+    <div className="space-y-1">
+      {lines.map((line, idx) => {
+        if (!line.trim()) {
+          return <div key={idx} className="h-1" />;
+        }
+
+        const parts = [];
+        const regex = /(\*\*.*?\*\*|\*.*?\*)/g;
+        let match;
+        let lastIdx = 0;
+        let k = 0;
+
+        while ((match = regex.exec(line)) !== null) {
+          if (match.index > lastIdx) {
+            parts.push(line.substring(lastIdx, match.index));
+          }
+          const token = match[0];
+          if (token.startsWith('**') && token.endsWith('**')) {
+            parts.push(
+              <strong key={k++} className="font-semibold text-ink">
+                {token.slice(2, -2)}
+              </strong>
+            );
+          } else if (token.startsWith('*') && token.endsWith('*')) {
+            parts.push(
+              <em key={k++} className="italic text-olive">
+                {token.slice(1, -1)}
+              </em>
+            );
+          }
+          lastIdx = match.index + token.length;
+        }
+
+        if (lastIdx < line.length) {
+          parts.push(line.substring(lastIdx));
+        }
+
+        const isBullet = line.trim().startsWith('•') || line.trim().startsWith('-');
+        const isNumbered = /^\d+\.\s/.test(line.trim());
+
+        return (
+          <p
+            key={idx}
+            className={`text-[11px] sm:text-xs leading-relaxed ${
+              isBullet || isNumbered ? 'pl-2' : ''
+            }`}
+          >
+            {parts.length > 0 ? parts : line}
+          </p>
+        );
+      })}
+    </div>
+  );
+};
+
 export const AIAssistantPopup = () => {
   const { user } = useAuth();
   const {
@@ -55,14 +118,19 @@ export const AIAssistantPopup = () => {
   };
 
   const quickPrompts = [
-    'Cycles under ₹2,500',
-    'Calculators closing soon',
-    'Textbooks'
+    'Cycles under ₹2,000',
+    'How does bidding work?',
+    'What is anti-sniping?',
+    'How does handover work?',
+    'Calculators',
+    'Books under 800',
+    'How do I sell?'
   ];
 
   if (!user) {
     return null;
   }
+
 
   return (
     <>
@@ -207,7 +275,8 @@ export const AIAssistantPopup = () => {
                       : 'bg-stone/80 border border-border text-ink'
                   }`}
                 >
-                  <p className="whitespace-pre-line text-[11px] sm:text-xs">{msg.text}</p>
+                  <FormattedText text={msg.text} isUser={msg.sender === 'user'} />
+
 
                   {/* Auction Matching Items Cards */}
                   {msg.auctions && msg.auctions.length > 0 && (
