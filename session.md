@@ -1372,7 +1372,7 @@ Implemented the four requested enhancements:
 
 ## Turn 8: User
 
-make the pop to be viewed small in the mobile view
+make the ai assistant tab popup to be viewed small in the mobile view
 
 ---
 
@@ -1393,7 +1393,7 @@ Optimized the **AI Assistant Pop-up Window** specifically for mobile screens:
 
 ## Turn 9: User
 
-in the search box the related istems dshould be shown while searching
+in the search box the related items should be shown while searching
 
 ---
 
@@ -1412,5 +1412,37 @@ Implemented **Live Search Autocomplete with Related Items Preview**:
    - Replaced static search input in [`ExplorePage.jsx`](file:///home/ram/Desktop/NEXTOWNER/tcc_auction-NextOwner/client/src/pages/ExplorePage.jsx) with `SearchAutocomplete`.
 3. **Backend Search Enhancements ([`auctionController.js`](file:///home/ram/Desktop/NEXTOWNER/tcc_auction-NextOwner/server/src/controllers/auctionController.js))**:
    - Extended keyword search to match `category` in addition to `title` and `description` for higher relevance.
+
+---
+
+## Turn 10: User
+
+Some students do not want to search for items one by one. They just want to tell the chatbot what they need.
+
+For example, a student can type, "Find me a cycle under ₹2,000." The chatbot should automatically search the available auctions and show cycles within that budget.
+
+If the student wants to bid on a cycle, the chatbot can suggest a bid and ask for permission before placing it. It must never bid more than the student's budget or place a bid without their approval. It must also keep every student's personal and account details private.
+
+---
+
+## Response 10: AI Assistant (Antigravity)
+
+Implemented and verified the **Natural Language Budget Search & Safe Consent-Based Bidding Workflow**:
+1. **Natural Language Budget Querying**:
+   - Supports natural language requests with budget limits like *"Find me a cycle under ₹2,000"*, *"Show calculators below 500"*, or *"Textbooks within 600"*.
+   - Automatically parses category, keywords, and comma-formatted currency amounts (`₹2,000`), filtering real live MongoDB auctions.
+   - Shows matching items with photos, current prices, bid counts, and direct lot links.
+2. **Safe Bid Suggestions & Explicit Consent Flow**:
+   - When a student asks to bid (e.g. *"I want to bid on the cycle up to ₹1,800"* or *"Suggest a bid for the cycle"*):
+     - Calculates the authoritative next valid minimum bid (`currentPrice + minimumIncrement`).
+     - Formulates an explicit proposal card requiring student approval.
+     - **Never bids without approval**: No bid is executed until the student clicks **Confirm Auto-Bid**.
+3. **Strict Budget Cap Enforcement**:
+   - If an item's next minimum bid exceeds the student's budget (e.g. asking to bid up to ₹1,000 on an item starting at ₹1,400), the chatbot refuses:
+     `"⚠️ Budget Limit Exceeded: The current price is ₹1,400... NEXTowner rules strictly prevent bidding beyond your authorized budget."`
+   - It will **never** bid or suggest a bid higher than the student's stated limit.
+4. **Student Privacy Protection**:
+   - Public auction queries sanitize all seller/bidder identifiers to protect student privacy.
+   - Private proxy bidding maximums (`AutoBid` ceilings), student phone numbers, email addresses, and passwords are never exposed in assistant responses.
 
 ---

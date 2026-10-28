@@ -156,16 +156,3 @@ The Vite dev server will start on `http://localhost:5173`.
 
 ---
 
-## Roadmap Progress
-- [x] **Phase 1**: NEXTowner Foundation & Design System
-- [x] **Phase 2**: Authentication & Navigation (Unified Student Account)
-- [ ] **Phase 3**: Auction Listings & Catalog
-- [ ] **Phase 4**: Real-time Bidding & Socket.IO Engine
-- [ ] **Phase 5**: Timers, Anti-Sniping & Auction Extensions
-- [ ] **Phase 6**: Auction Closure & Reserve Resolution
-- [ ] **Phase 7**: Post-Auction Seller Approval & Handover
-- [ ] **Phase 8**: Saved Searches & Instant Alerts
-- [ ] **Phase 9**: Automatic Proxy Bidding
-- [ ] **Phase 10**: Q&A Discussion Threading
-- [ ] **Phase 11**: AI Campus Buying Assistant
-- [ ] **Phase 12**: Progressive Web App (PWA) & Offline Shell
