@@ -111,27 +111,27 @@ export const AuctionCard = ({ auction, onWatchToggle, isInitiallyWatched = false
             }}
           />
 
-          {/* Category Tag overlay */}
-          <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
-            <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded bg-paper/90 backdrop-blur-sm text-ink border border-border">
+          {/* Category Tag overlay (elevated above image with z-20) */}
+          <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5 pointer-events-none">
+            <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded bg-paper/95 backdrop-blur-sm text-ink border border-border shadow-sm">
               {auction.category}
             </span>
-            <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-paper/90 backdrop-blur-sm text-forest border border-border">
+            <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-paper/95 backdrop-blur-sm text-forest border border-border shadow-sm">
               {conditionLabels[auction.condition] || auction.condition}
             </span>
           </div>
 
-          {/* Watchlist Toggle Button */}
+          {/* Watchlist Toggle Button (elevated above image with z-20) */}
           <button
             type="button"
             onClick={handleWatchClick}
             disabled={watchLoading}
             title={isWatched ? 'Remove from watchlist' : 'Add to watchlist'}
             className={`
-              absolute top-2.5 right-2.5 p-1.5 rounded-full border transition-colors shadow-sm
+              absolute top-2.5 right-2.5 z-20 p-1.5 rounded-full border transition-colors shadow-sm
               ${isWatched
                 ? 'bg-forest text-paper border-forest'
-                : 'bg-paper/90 text-olive hover:text-ink border-border hover:bg-paper'}
+                : 'bg-paper/95 text-olive hover:text-ink border-border hover:bg-paper'}
             `}
             aria-label="Toggle Watchlist"
           >
