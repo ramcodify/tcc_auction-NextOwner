@@ -1,172 +1,275 @@
-import React, { useState, useEffect } from 'react';
-import { Link, NavLink, useLocation } from 'react-router-dom';
-import { Menu, X, Gavel, Search, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
+import React, { useState } from 'react';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
+import {
+  Gavel,
+  Bell,
+  User as UserIcon,
+  Bot,
+  LogOut,
+  Menu,
+  X,
+  PlusCircle,
+  Compass,
+  Home,
+  Activity,
+  Layers
+} from 'lucide-react';
+import { useAuth } from '../../context/AuthContext.jsx';
+import Button from '../common/Button.jsx';
 import Badge from '../common/Badge.jsx';
 
 export const Navbar = () => {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [dbStatus, setDbStatus] = useState({ loading: true, connected: false, message: 'Checking...' });
-  const location = useLocation();
+  const { user, logout } = useAuth();
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const navigate = useNavigate();
 
-  const checkConnection = async () => {
-    setDbStatus(prev => ({ ...prev, loading: true }));
-    try {
-      const res = await fetch('/api/health/db');
-      const data = await res.json();
-      if (res.ok && data.status === 'healthy') {
-        setDbStatus({
-          loading: false,
-          connected: true,
-          message: 'MongoDB Connected',
-          details: data.database
-        });
-      } else {
-        setDbStatus({
-          loading: false,
-          connected: false,
-          message: data.message || 'Database disconnected',
-          details: data.database
-        });
-      }
-    } catch (err) {
-      setDbStatus({
-        loading: false,
-        connected: false,
-        message: 'Backend API unreachable'
-      });
-    }
+  const handleLogout = async () => {
+    await logout();
+    setMobileDrawerOpen(false);
+    navigate('/');
   };
 
-  useEffect(() => {
-    checkConnection();
-  }, []);
-
-  // Close mobile drawer on route change
-  useEffect(() => {
-    setMobileMenuOpen(false);
-  }, [location.pathname]);
-
-  const navItems = [
-    { label: 'Foundation & Overview', path: '/' },
-    { label: 'Component Library', path: '/foundation' },
-    { label: 'System Health', path: '/health' },
-    { label: 'Browse Auctions', path: '/browse', badge: 'Phase 3' },
-    { label: 'Sell Item', path: '/sell', badge: 'Phase 2' },
+  const navLinks = [
+    { label: 'Home', path: '/', end: true },
+    { label: 'Explore', path: '/explore' },
+    { label: 'Sell an item', path: '/sell' },
+    { label: 'My activity', path: '/activity' },
+    { label: 'AI assistant', path: '/assistant' }
   ];
+
+  const getInitials = (name) => {
+    if (!name) return 'S';
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
 
   return (
     <header className="sticky top-0 z-40 bg-paper/95 backdrop-blur-sm border-b border-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 gap-4">
+        <div className="flex items-center justify-between h-14 md:h-16 gap-3">
           {/* Brand Logo */}
-          <Link to="/" className="flex items-center gap-2.5 group">
+          <Link to="/" className="flex items-center gap-2 group shrink-0">
             <div className="w-8 h-8 rounded bg-forest flex items-center justify-center text-paper group-hover:bg-forest-dark transition-colors">
               <Gavel className="w-4 h-4" />
             </div>
             <div className="flex flex-col">
-              <span className="text-lg font-bold tracking-tight text-ink font-sans leading-none">
+              <span className="text-base sm:text-lg font-bold tracking-tight text-ink font-sans leading-none">
                 NEXT<span className="text-forest font-semibold">owner</span>
               </span>
-              <span className="text-[10px] uppercase tracking-wider text-olive font-medium mt-0.5">
+              <span className="text-[9px] sm:text-[10px] uppercase tracking-wider text-olive font-medium mt-0.5">
                 Campus Auction
               </span>
             </div>
           </Link>
 
-          {/* Desktop Navigation */}
+          {/* Full Desktop Navigation (md and up) */}
           <nav className="hidden md:flex items-center gap-1 lg:gap-2">
-            {navItems.map((item) => (
+            {navLinks.map((item) => (
               <NavLink
                 key={item.path}
                 to={item.path}
+                end={item.end}
                 className={({ isActive }) => `
-                  px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center gap-1.5
+                  px-3 py-1.5 rounded text-xs font-medium transition-colors
                   ${isActive
                     ? 'bg-stone text-ink font-semibold'
                     : 'text-olive hover:text-ink hover:bg-stone/50'}
                 `}
               >
-                <span>{item.label}</span>
-                {item.badge && (
-                  <span className="text-[10px] px-1.5 py-0.2 bg-stone-hover text-olive rounded">
-                    {item.badge}
-                  </span>
-                )}
+                {item.label}
               </NavLink>
             ))}
           </nav>
 
-          {/* Right Action / System Status */}
-          <div className="hidden lg:flex items-center gap-3">
-            <div
-              title={dbStatus.message}
-              className="flex items-center gap-2 px-2.5 py-1 rounded bg-stone border border-border text-xs cursor-pointer select-none"
-              onClick={checkConnection}
+          {/* Right Header Controls */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Notifications Button */}
+            <NavLink
+              to="/notifications"
+              className={({ isActive }) => `
+                relative p-2 rounded text-ink hover:bg-stone transition-colors
+                ${isActive ? 'bg-stone text-forest' : 'text-olive hover:text-ink'}
+              `}
+              title="Notifications"
             >
-              {dbStatus.loading ? (
-                <RefreshCw className="w-3.5 h-3.5 animate-spin text-olive" />
-              ) : dbStatus.connected ? (
-                <CheckCircle2 className="w-3.5 h-3.5 text-forest" />
+              <Bell className="w-4 h-4" />
+              {/* Subtle unread badge dot */}
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-forest ring-2 ring-paper" />
+            </NavLink>
+
+            {/* Desktop Auth State */}
+            <div className="hidden md:flex items-center gap-2">
+              {user ? (
+                <div className="flex items-center gap-2 pl-2 border-l border-border">
+                  <Link
+                    to="/profile"
+                    className="flex items-center gap-2 px-2.5 py-1 rounded bg-stone border border-border hover:bg-stone-hover transition-colors group"
+                  >
+                    <div className="w-6 h-6 rounded-full bg-forest text-paper text-[11px] font-semibold flex items-center justify-center">
+                      {getInitials(user.name)}
+                    </div>
+                    <span className="text-xs font-medium text-ink max-w-[100px] truncate">
+                      {user.name.split(' ')[0]}
+                    </span>
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="p-1.5 rounded text-olive hover:text-[#9E392F] hover:bg-stone transition-colors"
+                    title="Log Out"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                </div>
               ) : (
-                <AlertCircle className="w-3.5 h-3.5 text-[#9E392F]" />
+                <div className="flex items-center gap-2">
+                  <Link to="/login">
+                    <Button variant="ghost" size="sm">
+                      Log In
+                    </Button>
+                  </Link>
+                  <Link to="/register">
+                    <Button variant="primary" size="sm">
+                      Register
+                    </Button>
+                  </Link>
+                </div>
               )}
-              <span className="text-ink font-medium">
-                {dbStatus.loading ? 'Checking...' : dbStatus.connected ? 'DB Online' : 'DB Offline'}
-              </span>
+            </div>
+
+            {/* Mobile Header Right Profile / Login */}
+            <div className="flex items-center gap-1.5 md:hidden">
+              {user ? (
+                <Link
+                  to="/profile"
+                  className="w-7 h-7 rounded-full bg-forest text-paper text-xs font-semibold flex items-center justify-center"
+                  aria-label="Profile"
+                >
+                  {getInitials(user.name)}
+                </Link>
+              ) : (
+                <Link to="/login">
+                  <Button variant="primary" size="sm" className="text-xs px-2.5 py-1">
+                    Log In
+                  </Button>
+                </Link>
+              )}
+
+              {/* Mobile Drawer Toggle */}
               <button
                 type="button"
-                className="text-olive hover:text-ink ml-1 p-0.5 rounded"
-                title="Refresh Status"
+                onClick={() => setMobileDrawerOpen(!mobileDrawerOpen)}
+                className="p-1.5 rounded text-ink hover:bg-stone transition-colors ml-1"
+                aria-label="Toggle navigation drawer"
               >
-                <RefreshCw className="w-3 h-3" />
+                {mobileDrawerOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
             </div>
-          </div>
-
-          {/* Mobile Menu Button */}
-          <div className="flex items-center gap-2 md:hidden">
-            <button
-              type="button"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded text-ink hover:bg-stone transition-colors"
-              aria-label="Toggle navigation menu"
-            >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
           </div>
         </div>
       </div>
 
-      {/* Mobile Drawer */}
-      {mobileMenuOpen && (
-        <div className="md:hidden border-t border-border bg-paper px-4 pt-3 pb-5 space-y-2">
+      {/* Mobile Drawer (Accessible from top hamburger for all pages) */}
+      {mobileDrawerOpen && (
+        <div className="md:hidden border-t border-border bg-paper px-4 py-4 space-y-3">
           <div className="space-y-1">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={({ isActive }) => `
-                  flex items-center justify-between px-3 py-2.5 rounded text-sm font-medium
-                  ${isActive
-                    ? 'bg-stone text-ink font-semibold'
-                    : 'text-ink hover:bg-stone/60'}
-                `}
-              >
-                <span>{item.label}</span>
-                {item.badge && (
-                  <Badge variant="olive" size="sm">
-                    {item.badge}
-                  </Badge>
-                )}
-              </NavLink>
-            ))}
+            <NavLink
+              to="/"
+              end
+              onClick={() => setMobileDrawerOpen(false)}
+              className="flex items-center gap-3 px-3 py-2 rounded text-sm text-ink hover:bg-stone font-medium"
+            >
+              <Home className="w-4 h-4 text-forest" /> Home
+            </NavLink>
+            <NavLink
+              to="/explore"
+              onClick={() => setMobileDrawerOpen(false)}
+              className="flex items-center gap-3 px-3 py-2 rounded text-sm text-ink hover:bg-stone font-medium"
+            >
+              <Compass className="w-4 h-4 text-forest" /> Explore Auctions
+            </NavLink>
+            <NavLink
+              to="/sell"
+              onClick={() => setMobileDrawerOpen(false)}
+              className="flex items-center gap-3 px-3 py-2 rounded text-sm text-ink hover:bg-stone font-medium"
+            >
+              <PlusCircle className="w-4 h-4 text-forest" /> Sell an item
+            </NavLink>
+            <NavLink
+              to="/activity"
+              onClick={() => setMobileDrawerOpen(false)}
+              className="flex items-center gap-3 px-3 py-2 rounded text-sm text-ink hover:bg-stone font-medium"
+            >
+              <Activity className="w-4 h-4 text-forest" /> My activity
+            </NavLink>
+            <NavLink
+              to="/assistant"
+              onClick={() => setMobileDrawerOpen(false)}
+              className="flex items-center gap-3 px-3 py-2 rounded text-sm text-ink hover:bg-stone font-medium"
+            >
+              <Bot className="w-4 h-4 text-forest" /> AI Assistant
+            </NavLink>
+            <NavLink
+              to="/notifications"
+              onClick={() => setMobileDrawerOpen(false)}
+              className="flex items-center gap-3 px-3 py-2 rounded text-sm text-ink hover:bg-stone font-medium"
+            >
+              <Bell className="w-4 h-4 text-forest" /> Notifications
+            </NavLink>
+            <NavLink
+              to="/foundation"
+              onClick={() => setMobileDrawerOpen(false)}
+              className="flex items-center gap-3 px-3 py-2 rounded text-sm text-ink hover:bg-stone font-medium"
+            >
+              <Layers className="w-4 h-4 text-forest" /> Component Library
+            </NavLink>
           </div>
 
-          <div className="pt-3 border-t border-border/80 flex items-center justify-between text-xs text-olive">
-            <span>Database Status:</span>
-            <span className={`font-medium ${dbStatus.connected ? 'text-forest' : 'text-[#9E392F]'}`}>
-              {dbStatus.message}
-            </span>
+          <div className="pt-3 border-t border-border flex flex-col gap-2">
+            {user ? (
+              <div className="space-y-2">
+                <Link
+                  to="/profile"
+                  onClick={() => setMobileDrawerOpen(false)}
+                  className="flex items-center gap-3 px-3 py-2 rounded bg-stone text-xs text-ink font-medium"
+                >
+                  <div className="w-6 h-6 rounded-full bg-forest text-paper text-[10px] font-semibold flex items-center justify-center">
+                    {getInitials(user.name)}
+                  </div>
+                  <div>
+                    <p className="font-semibold">{user.name}</p>
+                    <p className="text-[11px] text-olive">{user.email}</p>
+                  </div>
+                </Link>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start text-[#9E392F]"
+                  onClick={handleLogout}
+                  icon={LogOut}
+                >
+                  Log Out
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <Link to="/login" onClick={() => setMobileDrawerOpen(false)}>
+                  <Button variant="outline" size="sm" className="w-full">
+                    Log In
+                  </Button>
+                </Link>
+                <Link to="/register" onClick={() => setMobileDrawerOpen(false)}>
+                  <Button variant="primary" size="sm" className="w-full">
+                    Register
+                  </Button>
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       )}
