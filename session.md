@@ -1565,3 +1565,5 @@ When students interacted with the floating AI Assistant popup, queries like `"hi
   - `"Find me a cycle under ₹2,000"` -> Returns `Hero Sprint Pro Single-Speed Campus Cycle` (₹1,400).
   - `"i want to bid on the cycle under 2000"` -> Generates `CONFIRM_AUTOBID` proposal card with explicit student authorization requirement.
   - `"i want to bid on the chair for 1000"` -> Rejects proposal safely because next valid bid (₹1,350) exceeds student's stated budget.
+
+---

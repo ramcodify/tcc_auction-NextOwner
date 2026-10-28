@@ -36,7 +36,7 @@ export const Dialog = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-ink/30 backdrop-blur-[1px] transition-opacity"
+        className="fixed inset-0 bg-ink/40 backdrop-blur-sm transition-opacity duration-200 animate-in fade-in"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -46,7 +46,7 @@ export const Dialog = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? 'dialog-title' : undefined}
-        className={`relative w-full ${maxWidth} bg-paper border border-border rounded-md shadow-modal p-6 z-10 transition-all ${className}`}
+        className={`relative w-full ${maxWidth} bg-paper border border-border rounded-xl shadow-2xl p-6 z-10 transition-all duration-200 animate-in fade-in zoom-in-95 ${className}`}
       >
         <div className="flex items-start justify-between gap-4 pb-3 border-b border-border/70">
           <div>

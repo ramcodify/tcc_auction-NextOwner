@@ -14,7 +14,7 @@ export const Button = ({
   icon: Icon,
   ...props
 }) => {
-  const baseStyles = 'inline-flex items-center justify-center font-medium transition-colors duration-150 rounded border focus:outline-none focus:ring-1 focus:ring-forest disabled:opacity-50 disabled:cursor-not-allowed select-none';
+  const baseStyles = 'inline-flex items-center justify-center font-medium transition-all duration-150 active:scale-[0.98] rounded border focus:outline-none focus:ring-1 focus:ring-forest disabled:opacity-50 disabled:cursor-not-allowed select-none';
 
   const variants = {
     primary: 'bg-forest hover:bg-forest-dark text-paper border-transparent active:bg-forest-dark',

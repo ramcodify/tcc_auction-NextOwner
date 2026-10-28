@@ -81,7 +81,7 @@ export const AuctionCard = ({ auction, onWatchToggle, isInitiallyWatched = false
   const isLive = auction.status === 'live';
 
   return (
-    <div className="group rounded border border-border bg-stone hover:bg-stone-hover transition-all duration-150 flex flex-col justify-between overflow-hidden relative">
+    <div className="group rounded border border-border bg-stone hover:bg-stone-hover hover:-translate-y-0.5 hover:shadow-card transition-all duration-200 ease-out flex flex-col justify-between overflow-hidden relative">
       <Link to={`/auction/${auction._id}`} className="block relative">
         {/* Photo Container */}
         <div className="relative aspect-[4/3] bg-paper overflow-hidden border-b border-border/80 flex items-center justify-center">

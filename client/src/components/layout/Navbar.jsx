@@ -16,15 +16,16 @@ import {
   Bookmark
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { useNotifications } from '../../context/NotificationContext.jsx';
 import Button from '../common/Button.jsx';
 import Badge from '../common/Badge.jsx';
-import { NotificationDropdown } from '../notification/NotificationPopup.jsx';
 
 export const Navbar = () => {
   const { user, logout } = useAuth();
+  const { openNotifications, toggleNotifications, unreadCount, isOpen: isNotificationOpen } = useNotifications();
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
-  const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
   const navigate = useNavigate();
+
 
   const handleLogout = async () => {
     await logout();
@@ -89,29 +90,24 @@ export const Navbar = () => {
 
           {/* Right Header Controls */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Notifications Button with On-Screen Pop-up Window */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setNotificationDropdownOpen(!notificationDropdownOpen)}
-                className={`
-                  relative p-2 rounded transition-colors
-                  ${notificationDropdownOpen ? 'bg-stone text-forest' : 'text-olive hover:text-ink hover:bg-stone'}
-                `}
-                title="Notifications"
-                aria-label="Toggle notifications pop-up"
-              >
-                <Bell className="w-4 h-4" />
-                {/* Subtle unread badge dot */}
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-forest ring-2 ring-paper" />
-              </button>
-
-              {/* On-Screen Notification Pop-up Window */}
-              <NotificationDropdown
-                isOpen={notificationDropdownOpen}
-                onClose={() => setNotificationDropdownOpen(false)}
-              />
-            </div>
+            {/* Notifications Button with Modal Pop-up */}
+            <button
+              type="button"
+              onClick={toggleNotifications}
+              className={`
+                relative p-2 rounded-full transition-all duration-150 active:scale-95
+                ${isNotificationOpen ? 'bg-stone text-forest shadow-sm' : 'text-olive hover:text-ink hover:bg-stone'}
+              `}
+              title="Campus Notifications"
+              aria-label="Toggle notifications pop-up"
+            >
+              <Bell className="w-4 h-4" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full bg-forest text-paper text-[9px] font-bold border-2 border-paper shadow-sm animate-in zoom-in-75">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </button>
 
             {/* Desktop Auth State */}
             <div className="hidden md:flex items-center gap-2">
@@ -219,13 +215,24 @@ export const Navbar = () => {
             >
               <Activity className="w-4 h-4 text-forest" /> My activity
             </NavLink>
-            <NavLink
-              to="/notifications"
-              onClick={() => setMobileDrawerOpen(false)}
-              className="flex items-center gap-3 px-3 py-2 rounded text-sm text-ink hover:bg-stone font-medium"
+            <button
+              type="button"
+              onClick={() => {
+                setMobileDrawerOpen(false);
+                openNotifications();
+              }}
+              className="w-full flex items-center justify-between px-3 py-2 rounded text-sm text-ink hover:bg-stone font-medium text-left transition-colors"
             >
-              <Bell className="w-4 h-4 text-forest" /> Notifications
-            </NavLink>
+              <div className="flex items-center gap-3">
+                <Bell className="w-4 h-4 text-forest" />
+                <span>Notifications</span>
+              </div>
+              {unreadCount > 0 && (
+                <Badge variant="forest" size="sm" className="text-[10px] py-0 px-1.5">
+                  {unreadCount} new
+                </Badge>
+              )}
+            </button>
             <NavLink
               to="/watchlist"
               onClick={() => setMobileDrawerOpen(false)}
